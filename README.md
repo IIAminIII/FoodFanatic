@@ -13,8 +13,8 @@ Production database setup and catalog bootstrapping are documented in
 [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
 Vercel deployments require a persistent Postgres integration that supplies
-`DATABASE_URL`. The included Vercel build hook applies Django migrations after
-the database is connected.
+`DATABASE_URL` or Supabase's `POSTGRES_URL`. The included Vercel build hook
+applies Django migrations after the database is connected.
 
 ## Local setup (PowerShell)
 

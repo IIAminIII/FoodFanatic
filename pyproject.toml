@@ -12,4 +12,4 @@ dependencies = [
 ]
 
 [tool.vercel.scripts]
-build = 'if [ -n "$DATABASE_URL" ]; then python manage.py migrate --noinput; fi'
+build = 'if [ -n "$DATABASE_URL" ] || [ -n "$POSTGRES_URL" ]; then python manage.py migrate --noinput; fi'

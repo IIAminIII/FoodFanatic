@@ -94,13 +94,17 @@ TEMPLATES = [
 WSGI_APPLICATION = "Food_Fanatic.wsgi.application"
 
 
-database_url = env("DATABASE_URL", default="")
+database_url = env("DATABASE_URL", default="") or env(
+    "POSTGRES_URL",
+    default="",
+)
 if database_url:
     DATABASES = {"default": env.db_url_config(database_url)}
 else:
     if IS_VERCEL:
         raise ImproperlyConfigured(
-            "DATABASE_URL must point to persistent PostgreSQL on Vercel."
+            "DATABASE_URL or POSTGRES_URL must point to persistent PostgreSQL "
+            "on Vercel."
         )
     DATABASES = {
         "default": {
