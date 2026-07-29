@@ -184,9 +184,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Do not copy packaged starter images into media storage.",
         )
+        parser.add_argument(
+            "--if-empty",
+            action="store_true",
+            help="Seed only when no menu items exist yet.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if options["if_empty"] and FoodItem.objects.exists():
+            self.stdout.write("Menu seed skipped: menu items already exist.")
+            return
+
         categories = {}
         for name, slug in CATEGORIES:
             category, _ = Category.objects.update_or_create(

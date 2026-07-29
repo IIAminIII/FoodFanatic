@@ -64,16 +64,20 @@ Vercel project:
    descriptions, prices, categories, availability, and discount configuration.
    Starter images are copied into the configured media storage.
 
+   On Vercel, the build hook automatically runs this seed with `--if-empty`
+   and `--skip-images` after migrations. It adds the starter menu only to a
+   brand-new empty database and never overwrites an existing restaurant menu.
+
 6. Create the first operator account:
 
    ```shell
    python manage.py createsuperuser
    ```
 
-For Vercel, migrations run during the build after the database integration has
-injected `DATABASE_URL` or `POSTGRES_URL`. Run the seed and superuser commands
-from a trusted workstation or CI job with the production database URL. Do not
-store that URL in Git.
+For Vercel, migrations and the one-time empty-menu seed run during the build
+after the database integration has injected `DATABASE_URL` or `POSTGRES_URL`.
+Run the superuser command from a trusted workstation or CI job with the
+production database URL. Do not store that URL in Git.
 
 Supabase's Vercel integration may append a `supa` routing marker to
 `POSTGRES_URL`. FoodFanatic removes that provider metadata before passing the

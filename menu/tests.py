@@ -46,6 +46,18 @@ class FoodItemPricingTests(TestCase):
 
 
 class MenuSeedCommandTests(TestCase):
+    def test_if_empty_does_not_change_an_existing_menu(self):
+        FoodItem.objects.create(
+            title="Restaurant Special",
+            description="A menu item entered by staff.",
+            price=Decimal("12.00"),
+        )
+
+        call_command("seed_menu", skip_images=True, if_empty=True, verbosity=0)
+
+        self.assertEqual(FoodItem.objects.count(), 1)
+        self.assertTrue(FoodItem.objects.filter(title="Restaurant Special").exists())
+
     def test_seed_is_idempotent_and_updates_only_when_requested(self):
         call_command("seed_menu", skip_images=True, verbosity=0)
         call_command("seed_menu", skip_images=True, verbosity=0)
