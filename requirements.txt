@@ -4,3 +4,4 @@ crispy-bootstrap5>=2025.6,<2027
 django-crispy-forms>=2.4,<3
 django-environ>=0.12,<1
 psycopg[binary]>=3.2,<4
+supabase>=2.30,<3

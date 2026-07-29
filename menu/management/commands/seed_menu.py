@@ -189,9 +189,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Seed only when no menu items exist yet.",
         )
+        parser.add_argument(
+            "--fill-missing-images",
+            action="store_true",
+            help="Attach packaged images only to existing items that have no image.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if options["fill_missing_images"]:
+            self._fill_missing_images()
+            return
+
         if options["if_empty"] and FoodItem.objects.exists():
             self.stdout.write("Menu seed skipped: menu items already exist.")
             return
@@ -257,6 +266,27 @@ class Command(BaseCommand):
             )
         )
 
+    def _fill_missing_images(self):
+        image_source_dir = Path(apps.get_app_config("menu").path) / "images"
+        attached_count = 0
+        missing_count = 0
+
+        for seed in MENU_ITEMS:
+            item = FoodItem.objects.filter(title=seed["title"]).order_by("pk").first()
+            if item is None or item.image:
+                continue
+            if self._attach_image(item, image_source_dir / seed["image"], True):
+                attached_count += 1
+            else:
+                missing_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Menu image seed complete: "
+                f"{attached_count} attached, {missing_count} missing."
+            )
+        )
+
     def _attach_image(self, item, source_path, update_reference):
         if item.image and not update_reference:
             existing_source = source_path.parent / Path(item.image.name).name
@@ -265,7 +295,7 @@ class Command(BaseCommand):
 
         if not source_path.exists():
             self.stderr.write(self.style.WARNING(f"Missing seed image: {source_path}"))
-            return
+            return False
 
         destination = (
             f"menu/images/{source_path.name}"
@@ -278,3 +308,4 @@ class Command(BaseCommand):
         if update_reference and item.image.name != destination:
             item.image.name = destination
             item.save(update_fields=("image",))
+        return True

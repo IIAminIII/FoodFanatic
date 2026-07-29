@@ -139,8 +139,40 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-MEDIA_URL = env("MEDIA_URL", default="/media/")
-MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
+
+
+def runtime_or_file_environment(name, default=""):
+    return RUNTIME_ENVIRONMENT.get(name) or env(name, default=default)
+
+
+SUPABASE_URL = runtime_or_file_environment("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = runtime_or_file_environment("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_STORAGE_BUCKET = runtime_or_file_environment(
+    "SUPABASE_STORAGE_BUCKET", default="foodfanatic-media"
+)
+SUPABASE_STORAGE_ENABLED = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+
+if SUPABASE_STORAGE_ENABLED:
+    MEDIA_URL = (
+        f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/"
+        f"{SUPABASE_STORAGE_BUCKET}/"
+    )
+    STORAGES = {
+        "default": {
+            "BACKEND": "Food_Fanatic.storage.SupabaseStorage",
+            "OPTIONS": {
+                "url": SUPABASE_URL,
+                "key": SUPABASE_SERVICE_ROLE_KEY,
+                "bucket_name": SUPABASE_STORAGE_BUCKET,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    MEDIA_URL = env("MEDIA_URL", default="/media/")
+    MEDIA_ROOT = env.path("MEDIA_ROOT", default=BASE_DIR / "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

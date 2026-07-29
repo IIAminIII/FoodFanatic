@@ -1,16 +1,34 @@
 from datetime import timedelta
 from decimal import Decimal
+from tempfile import TemporaryDirectory
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.core.files.storage import default_storage
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from order.models import Order, OrderItem
 
 from .models import CartItem, FoodItem, Review
+from Food_Fanatic.storage import SupabaseStorage
+
+
+class SupabaseStorageTests(TestCase):
+    def test_public_url_uses_the_bucket_and_escapes_object_names(self):
+        storage = SupabaseStorage(
+            url="https://example.supabase.co/",
+            key="test-key",
+            bucket_name="foodfanatic-media",
+        )
+
+        self.assertEqual(
+            storage.url("menu/images/chicken wings.jpg"),
+            "https://example.supabase.co/storage/v1/object/public/"
+            "foodfanatic-media/menu/images/chicken%20wings.jpg",
+        )
 
 
 class FoodItemPricingTests(TestCase):
@@ -84,6 +102,21 @@ class MenuSeedCommandTests(TestCase):
         )
         burger.refresh_from_db()
         self.assertEqual(burger.price, Decimal("200.00"))
+
+    def test_fill_missing_images_only_updates_missing_image_references(self):
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                call_command("seed_menu", skip_images=True, verbosity=0)
+                burger = FoodItem.objects.get(title="Beef Burger")
+                burger.price = Decimal("1.00")
+                burger.save(update_fields=("price",))
+
+                call_command("seed_menu", fill_missing_images=True, verbosity=0)
+
+                burger.refresh_from_db()
+                self.assertEqual(burger.price, Decimal("1.00"))
+                self.assertEqual(burger.image.name, "menu/images/beefburger.jpg")
+                self.assertTrue(default_storage.exists(burger.image.name))
 
 
 class CartSecurityTests(TestCase):

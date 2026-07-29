@@ -31,7 +31,7 @@ Vercel project:
    ALLOWED_HOSTS=.vercel.app,restaurant.example.com
    CSRF_TRUSTED_ORIGINS=https://*.vercel.app,https://restaurant.example.com
    DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
-   MEDIA_ROOT=/path/to/persistent/media
+   SUPABASE_STORAGE_BUCKET=foodfanatic-media
    SECURE_SSL_REDIRECT=True
    SECURE_HSTS_SECONDS=31536000
    ```
@@ -65,8 +65,8 @@ Vercel project:
    Starter images are copied into the configured media storage.
 
    On Vercel, the build hook automatically runs this seed with `--if-empty`
-   and `--skip-images` after migrations. It adds the starter menu only to a
-   brand-new empty database and never overwrites an existing restaurant menu.
+   after migrations. It adds the starter menu only to a brand-new empty
+   database and never overwrites an existing restaurant menu.
 
 6. Create the first operator account:
 
@@ -99,9 +99,20 @@ automatically during deployments.
 ## Media persistence
 
 The database stores image paths, while the image files live in media storage.
-`MEDIA_ROOT` must point to a persistent disk or a storage service mounted by the
-deployment platform. An ephemeral application filesystem will lose uploaded
-images when the service restarts.
+On Vercel, FoodFanatic uses the connected Supabase project's Storage service:
+
+- The deployment creates a public `foodfanatic-media` bucket when necessary.
+- Packaged menu photos are safely filled in only for existing menu items with
+  no image; staff-created images and menu details are not overwritten.
+- The bucket is public because restaurant menu images need direct browser URLs.
+  `SUPABASE_SERVICE_ROLE_KEY` is never sent to the browser and must remain a
+  sensitive Vercel variable.
+
+The Supabase Vercel integration already provides `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` for Production and Preview. Add
+`SUPABASE_STORAGE_BUCKET=foodfanatic-media` as a non-sensitive project variable
+if you want to use a different bucket name, then redeploy. Local development
+continues to use `MEDIA_ROOT` unless both Supabase variables are set.
 
 ## Backups and local development
 

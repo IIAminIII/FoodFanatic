@@ -9,7 +9,8 @@ dependencies = [
     "django-crispy-forms>=2.4,<3",
     "django-environ>=0.12,<1",
     "psycopg[binary]>=3.2,<4",
+    "supabase>=2.30,<3",
 ]
 
 [tool.vercel.scripts]
-build = 'if [ -n "$DATABASE_URL" ] || [ -n "$POSTGRES_URL" ]; then python manage.py migrate --noinput && python manage.py seed_menu --skip-images --if-empty; fi'
+build = 'if [ -n "$DATABASE_URL" ] || [ -n "$POSTGRES_URL" ]; then python manage.py migrate --noinput && python manage.py setup_media_bucket && python manage.py seed_menu --skip-images --if-empty && if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then python manage.py seed_menu --fill-missing-images; fi; fi'
