@@ -3,6 +3,19 @@
 Production data belongs in a persistent database, not in the Git repository.
 FoodFanatic supports PostgreSQL through the `DATABASE_URL` environment variable.
 
+## Vercel project settings
+
+FoodFanatic includes `vercel.json` with the Django framework preset. In the
+Vercel project:
+
+- Keep **Root Directory** at the repository root.
+- Keep **Build Command** and **Output Directory** overrides empty so Vercel's
+  Django adapter can detect `manage.py`, the WSGI application, templates, and
+  static files.
+- Set the variables below for both Production and Preview where appropriate.
+- Connect persistent PostgreSQL before deploying. Serverless SQLite is not
+  supported because function filesystems are ephemeral.
+
 ## First deployment
 
 1. Provision a managed PostgreSQL database with automated backups.
@@ -11,8 +24,8 @@ FoodFanatic supports PostgreSQL through the `DATABASE_URL` environment variable.
    ```text
    DEBUG=False
    SECRET_KEY=<long-random-secret>
-   ALLOWED_HOSTS=restaurant.example.com
-   CSRF_TRUSTED_ORIGINS=https://restaurant.example.com
+   ALLOWED_HOSTS=.vercel.app,restaurant.example.com
+   CSRF_TRUSTED_ORIGINS=https://*.vercel.app,https://restaurant.example.com
    DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
    MEDIA_ROOT=/path/to/persistent/media
    SECURE_SSL_REDIRECT=True
@@ -48,6 +61,9 @@ FoodFanatic supports PostgreSQL through the `DATABASE_URL` environment variable.
    ```shell
    python manage.py createsuperuser
    ```
+
+For Vercel, run the migration and seed commands from a trusted workstation or
+CI job with the production `DATABASE_URL`. Do not store that URL in Git.
 
 ## Later deployments
 

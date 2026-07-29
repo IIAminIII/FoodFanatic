@@ -1,5 +1,6 @@
 """Django settings for FoodFanatic."""
 
+import os
 from pathlib import Path
 
 import environ
@@ -7,9 +8,10 @@ import environ
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+IS_VERCEL = os.environ.get("VERCEL") == "1"
 
 env = environ.Env(
-    DEBUG=(bool, True),
+    DEBUG=(bool, not IS_VERCEL),
     EMAIL_USE_TLS=(bool, True),
     SECURE_HSTS_INCLUDE_SUBDOMAINS=(bool, False),
     SECURE_HSTS_PRELOAD=(bool, False),
@@ -19,17 +21,28 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 DEBUG = env.bool("DEBUG")
 _DEVELOPMENT_SECRET = "development-only-secret-key-change-before-deploying"
-SECRET_KEY = env("SECRET_KEY", default=_DEVELOPMENT_SECRET)
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default=env("DJANGO_SECRET_KEY", default=_DEVELOPMENT_SECRET),
+)
 if not DEBUG and SECRET_KEY == _DEVELOPMENT_SECRET:
-    raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is False.")
+    raise ImproperlyConfigured(
+        "Set SECRET_KEY (or DJANGO_SECRET_KEY) when DEBUG is False."
+    )
 
+default_allowed_hosts = ["localhost", "127.0.0.1"]
+if IS_VERCEL:
+    default_allowed_hosts.append(".vercel.app")
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=["localhost", "127.0.0.1"] if DEBUG else [],
+    default=default_allowed_hosts,
 )
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("ALLOWED_HOSTS must be set when DEBUG is False.")
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=["https://*.vercel.app"] if IS_VERCEL else [],
+)
 
 
 INSTALLED_APPS = [
@@ -85,6 +98,10 @@ database_url = env("DATABASE_URL", default="")
 if database_url:
     DATABASES = {"default": env.db_url_config(database_url)}
 else:
+    if IS_VERCEL:
+        raise ImproperlyConfigured(
+            "DATABASE_URL must point to persistent PostgreSQL on Vercel."
+        )
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
