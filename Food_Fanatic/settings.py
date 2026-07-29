@@ -7,10 +7,12 @@ import environ
 
 from django.core.exceptions import ImproperlyConfigured
 
-from .database import build_database_config
+from .database import build_database_config, resolve_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 IS_VERCEL = os.environ.get("VERCEL") == "1"
+# Keep deployment-provided values before django-environ loads local .env files.
+RUNTIME_ENVIRONMENT = dict(os.environ)
 
 env = environ.Env(
     DEBUG=(bool, not IS_VERCEL),
@@ -96,10 +98,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "Food_Fanatic.wsgi.application"
 
 
-database_url = env("DATABASE_URL", default="") or env(
-    "POSTGRES_URL",
-    default="",
-)
+database_url = resolve_database_url(RUNTIME_ENVIRONMENT, env)
 if database_url:
     DATABASES = {"default": build_database_config(database_url)}
 else:

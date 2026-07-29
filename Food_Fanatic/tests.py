@@ -1,9 +1,27 @@
 from django.test import SimpleTestCase
 
-from .database import build_database_config
+from .database import build_database_config, resolve_database_url
 
 
 class DatabaseConfigTests(SimpleTestCase):
+    def test_runtime_database_url_overrides_local_env_default(self):
+        file_environment_calls = []
+
+        database_url = resolve_database_url(
+            {
+                "POSTGRES_URL": (
+                    "postgresql://user:password@pooler.supabase.com:6543/postgres"
+                )
+            },
+            lambda *args, **kwargs: file_environment_calls.append(args) or "sqlite:///db.sqlite3",
+        )
+
+        self.assertEqual(
+            database_url,
+            "postgresql://user:password@pooler.supabase.com:6543/postgres",
+        )
+        self.assertEqual(file_environment_calls, [])
+
     def test_supabase_metadata_is_not_passed_to_psycopg(self):
         config = build_database_config(
             "postgresql://user:password@aws-0-us-east-1.pooler.supabase.com:"

@@ -22,3 +22,13 @@ def build_database_config(database_url):
         config.pop("OPTIONS")
 
     return config
+
+
+def resolve_database_url(runtime_environment, file_environment):
+    """Prefer deployment-injected database URLs over local .env defaults."""
+    return (
+        runtime_environment.get("DATABASE_URL")
+        or runtime_environment.get("POSTGRES_URL")
+        or file_environment("DATABASE_URL", default="")
+        or file_environment("POSTGRES_URL", default="")
+    )

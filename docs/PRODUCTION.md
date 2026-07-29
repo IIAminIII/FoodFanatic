@@ -80,6 +80,9 @@ Supabase's Vercel integration may append a `supa` routing marker to
 remaining connection options to psycopg. Transaction-pooler URLs on port 6543
 also disable prepared statements and server-side cursors.
 
+When using `vercel env run`, the injected `DATABASE_URL` or `POSTGRES_URL`
+takes precedence over a developer's local `.env` file.
+
 ## Later deployments
 
 Run `python manage.py migrate` during every deployment. Migrations modify the
