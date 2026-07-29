@@ -57,6 +57,17 @@ class AccountSecurityTests(TestCase):
         self.assertEqual(self.user.username, "customer-updated")
         self.assertEqual(self.other_user.username, "other")
 
+    def test_profile_renders_account_dashboard(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("profile"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "profile.html")
+        self.assertContains(response, "Account overview")
+        self.assertContains(response, "Verified")
+        self.assertEqual(response.context["orders_count"], 0)
+
     def test_logout_requires_post(self):
         self.client.force_login(self.user)
 

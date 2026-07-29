@@ -1,26 +1,158 @@
-{% extends 'base.html' %} {% load static %} {% block content %} {% if form.non_field_errors %} {% for error in form.non_field_errors %}
-<div
-  class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-2"
-  role="alert"
->
-  <p class="font-bold">Error!</p>
-  <p class="block sm:inline">{{ error }}</p>
-</div>
-{% endfor %} {% endif %} 
+{% extends "base.html" %}
 
-<h1>Welcome, {{user}} !</h1>
+{% block title %}My Account · FoodFanatic{% endblock %}
 
-<div class="p-5">
-  <a
-    class="bg-gray-500 text-xl px-3 py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-    href="{% url 'update' %}"
-    >Update User Profile</a
-  >
-  <a
-    class="bg-gray-500 text-xl px-3 py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-    href="{% url 'passchnge'%}"
-    >Change Password</a
-  >
-</div>
+{% block content %}
+<section class="relative overflow-hidden">
+  <div class="absolute inset-x-0 top-0 h-72 bg-slate-950" aria-hidden="true"></div>
+  <div class="absolute top-10 left-[10%] h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true"></div>
+  <div class="absolute top-0 right-[8%] h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" aria-hidden="true"></div>
 
+  <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <div class="mb-8 text-white">
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-brand-500">My account</p>
+      <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">
+        Welcome back,
+        {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+      </h1>
+      <p class="mt-2 max-w-2xl text-slate-300">
+        Manage your personal details, security settings, and restaurant orders in one place.
+      </p>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-[340px_1fr] items-start">
+      <aside class="rounded-3xl bg-white border border-slate-200 shadow-soft overflow-hidden">
+        <div class="h-24 bg-gradient-to-r from-brand-500 via-orange-500 to-amber-400"></div>
+        <div class="px-6 pb-7">
+          <div class="-mt-12 h-24 w-24 rounded-3xl bg-slate-950 text-white border-4 border-white shadow-xl grid place-items-center text-3xl font-bold">
+            {% if user.first_name %}
+              {{ user.first_name|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}
+            {% else %}
+              {{ user.username|first|upper }}
+            {% endif %}
+          </div>
+
+          <div class="mt-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-2xl font-bold text-slate-950">
+                {% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}
+              </h2>
+              {% if account and account.is_activated %}
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0l-3.5-3.5a1 1 0 1 1 1.4-1.4l2.8 2.8 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/>
+                  </svg>
+                  Verified
+                </span>
+              {% else %}
+                <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">Verification pending</span>
+              {% endif %}
+            </div>
+            <p class="mt-1 text-sm text-slate-500">@{{ user.username }}</p>
+          </div>
+
+          <dl class="mt-6 space-y-4 text-sm">
+            <div class="flex gap-3">
+              <span class="h-9 w-9 rounded-xl bg-slate-100 grid place-items-center text-slate-600">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6h16v12H4zM4 7l8 6 8-6" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <div class="min-w-0">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</dt>
+                <dd class="mt-0.5 truncate font-medium text-slate-700">{{ user.email|default:"Not provided" }}</dd>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <span class="h-9 w-9 rounded-xl bg-slate-100 grid place-items-center text-slate-600">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Member since</dt>
+                <dd class="mt-0.5 font-medium text-slate-700">{{ user.date_joined|date:"F Y" }}</dd>
+              </div>
+            </div>
+          </dl>
+
+          <a href="{% url 'update' %}" class="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300 transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m14 5 5 5M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Edit profile
+          </a>
+        </div>
+      </aside>
+
+      <div class="space-y-6">
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Total orders</p>
+            <p class="mt-2 text-3xl font-bold text-slate-950">{{ orders_count }}</p>
+            <p class="mt-1 text-xs text-slate-400">Across your account</p>
+          </div>
+          <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Completed</p>
+            <p class="mt-2 text-3xl font-bold text-slate-950">{{ completed_orders_count }}</p>
+            <p class="mt-1 text-xs text-slate-400">Successfully delivered</p>
+          </div>
+          <div class="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+            <p class="text-sm font-semibold text-slate-500">Account status</p>
+            <p class="mt-2 text-lg font-bold {% if account and account.is_activated %}text-emerald-600{% else %}text-amber-600{% endif %}">
+              {% if account and account.is_activated %}Active{% else %}Pending{% endif %}
+            </p>
+            <p class="mt-2 text-xs text-slate-400">Email verification</p>
+          </div>
+        </div>
+
+        <section class="rounded-3xl bg-white border border-slate-200 shadow-soft overflow-hidden">
+          <div class="px-6 sm:px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Quick actions</p>
+              <h2 class="mt-1 text-2xl font-bold text-slate-950">Account overview</h2>
+            </div>
+            <a href="{% url 'home' %}" class="text-sm font-bold text-brand-600 hover:text-brand-700">Browse menu →</a>
+          </div>
+
+          <div class="grid md:grid-cols-2">
+            <a href="{% url 'orderhistory' %}" class="group p-6 sm:p-8 border-b md:border-b-0 md:border-r border-slate-100 hover:bg-slate-50 transition">
+              <span class="h-12 w-12 rounded-2xl bg-brand-50 text-brand-600 grid place-items-center group-hover:bg-brand-500 group-hover:text-white transition">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6M9 12h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <h3 class="mt-5 text-lg font-bold text-slate-950">Order history</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Review previous orders, status updates, totals, and item details.</p>
+              <span class="mt-4 inline-flex text-sm font-bold text-slate-900 group-hover:text-brand-600">View my orders →</span>
+            </a>
+
+            <a href="{% url 'passchnge' %}" class="group p-6 sm:p-8 hover:bg-slate-50 transition">
+              <span class="h-12 w-12 rounded-2xl bg-slate-100 text-slate-700 grid place-items-center group-hover:bg-slate-950 group-hover:text-white transition">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <h3 class="mt-5 text-lg font-bold text-slate-950">Password & security</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-500">Keep your account protected with a strong, unique password.</p>
+              <span class="mt-4 inline-flex text-sm font-bold text-slate-900 group-hover:text-brand-600">Change password →</span>
+            </a>
+          </div>
+        </section>
+
+        <div class="rounded-2xl border border-orange-200 bg-brand-50 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <span class="h-11 w-11 shrink-0 rounded-2xl bg-white text-brand-600 shadow-sm grid place-items-center">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <div class="flex-1">
+            <h2 class="font-bold text-slate-950">Your account is protected</h2>
+            <p class="mt-1 text-sm text-slate-600">FoodFanatic never displays your password and protects account changes with authenticated sessions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}

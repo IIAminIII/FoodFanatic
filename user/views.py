@@ -109,7 +109,19 @@ def userlogout(request):
 
 @login_required(login_url="login")
 def Profile(request):
-    return render(request, "profile.html")
+    account = AccountModel.objects.filter(user=request.user).first()
+    orders = request.user.orders.all()
+    return render(
+        request,
+        "profile.html",
+        {
+            "account": account,
+            "orders_count": orders.count(),
+            "completed_orders_count": orders.filter(
+                status="COMPLETED"
+            ).count(),
+        },
+    )
 
 
 @method_decorator(login_required(login_url="login"), name="dispatch")
