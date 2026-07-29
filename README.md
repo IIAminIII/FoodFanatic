@@ -12,6 +12,10 @@ operations.
 Production database setup and catalog bootstrapping are documented in
 [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
+Vercel deployments require a persistent Postgres integration that supplies
+`DATABASE_URL`. The included Vercel build hook applies Django migrations after
+the database is connected.
+
 ## Local setup (PowerShell)
 
 The project targets Python 3.10–3.14 and Django 5.2 LTS.

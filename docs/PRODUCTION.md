@@ -18,7 +18,10 @@ Vercel project:
 
 ## First deployment
 
-1. Provision a managed PostgreSQL database with automated backups.
+1. Provision a managed PostgreSQL database with automated backups. On Vercel,
+   open the project's **Storage** tab, create a Neon Postgres integration, and
+   connect it to the `food-fanatic` project. The integration must expose its
+   pooled connection string as `DATABASE_URL` in the Production environment.
 2. Set the production environment variables:
 
    ```text
@@ -45,6 +48,10 @@ Vercel project:
    python manage.py migrate
    ```
 
+   Vercel also runs this command on each deployment through
+   `[tool.vercel.scripts]` in `pyproject.toml`. Keep `DATABASE_URL` scoped to
+   Production unless Preview uses an isolated database branch.
+
 5. Import the non-sensitive starter catalog:
 
    ```shell
@@ -62,8 +69,10 @@ Vercel project:
    python manage.py createsuperuser
    ```
 
-For Vercel, run the migration and seed commands from a trusted workstation or
-CI job with the production `DATABASE_URL`. Do not store that URL in Git.
+For Vercel, migrations run during the build after the database integration has
+injected `DATABASE_URL`. Run the seed and superuser commands from a trusted
+workstation or CI job with the production `DATABASE_URL`. Do not store that URL
+in Git.
 
 ## Later deployments
 
