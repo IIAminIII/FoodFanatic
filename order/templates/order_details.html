@@ -1,13 +1,41 @@
 {% extends 'base.html' %} {% block content %}
 
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 pb-20">
   <h2 class="text-5xl font-semibold my-20 text-center">Order Details</h2>
-  <div
-    class="flex flex-row items-center justify-between text-lg font-semibold my-5"
-  >
-    <p>Thanks For Your Order. Your Order ID: {{ order.id }}</p>
-    <p>Order Date: {{ order.placed_at}}</p>
-    <p>Order Date: {{ order.items.product.title}}</p>
+  <div class="flex flex-col md:flex-row justify-between text-lg font-semibold my-5 gap-3">
+    <p>Order ID: #{{ order.id }}</p>
+    <p>Placed: {{ order.placed_at }}</p>
+    <p>Status: {{ order.get_status_display }}</p>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="table-auto w-full border">
+      <thead class="bg-slate-800 text-white">
+        <tr>
+          <th class="text-left px-4 py-2">Item</th>
+          <th class="text-right px-4 py-2">Quantity</th>
+          <th class="text-right px-4 py-2">Unit price</th>
+          <th class="text-right px-4 py-2">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order_items %}
+        <tr class="border-b">
+          <td class="px-4 py-2">{{ item.product_name }}</td>
+          <td class="text-right px-4 py-2">{{ item.quantity }}</td>
+          <td class="text-right px-4 py-2">${{ item.unit_price }}</td>
+          <td class="text-right px-4 py-2">${{ item.line_total }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="px-4 py-2" colspan="4">No line items were recorded.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="font-bold">
+          <td class="text-right px-4 py-3" colspan="3">Order total</td>
+          <td class="text-right px-4 py-3">${{ order.total_amount }}</td>
+        </tr>
+      </tfoot>
+    </table>
   </div>
 </div>
-{%endblock%}
+{% endblock %}

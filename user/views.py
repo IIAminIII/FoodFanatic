@@ -1,110 +1,165 @@
-from django.shortcuts import render,redirect
-from .forms import UserForm,ChangeData
-from django.views.generic import CreateView
-from django.contrib.auth.models import User
-from .models import AccountModel
-from django.urls import reverse_lazy
-from django.contrib.auth.views import LoginView
-from django.contrib.auth import logout
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
+import logging
 import uuid
-from django.utils.decorators import method_decorator
-from django.views.generic import CreateView,UpdateView
+
+from django.contrib import messages
+from django.contrib.auth import logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import logout,update_session_auth_hash
+from django.contrib.auth.views import LoginView
+from django.core.mail import EmailMultiAlternatives
+from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+from django.views.generic import CreateView, UpdateView
+
+from .forms import ChangeData, UserForm
+from .models import AccountModel
+
+logger = logging.getLogger(__name__)
 
 
+def send_verification_email(request, user, token):
+    verification_url = request.build_absolute_uri(
+        reverse("verify", kwargs={"token": token})
+    )
+    message = render_to_string(
+        "registercnfrm.html",
+        {"user": user, "verification_url": verification_url},
+    )
+    email = EmailMultiAlternatives(
+        "Confirm your FoodFanatic email",
+        f"Confirm your email: {verification_url}",
+        to=[user.email],
+    )
+    email.attach_alternative(message, "text/html")
+    email.send()
 
-def send_verification_email(user,token ,template):
-        message = render_to_string(template, {
-            'user' : user,
-            'token' : token
-            
-        })
-        send_email = EmailMultiAlternatives('Please Confirm your Email', '', to=[user.email])
-        send_email.attach_alternative(message, "text/html")
-        send_email.send()
 
+class SignupUserView(CreateView):
+    template_name = "register.html"
+    form_class = UserForm
+    success_url = reverse_lazy("login")
 
-class signup_user(CreateView):
-    model = User
-    template_name = 'register.html'
-    form_class= UserForm
-    success_url= reverse_lazy('login')
     def form_valid(self, form):
-            our_user = super().form_valid(form)
-            obj = AccountModel.objects.create(user=self.object,email_token=str(uuid.uuid4()))
-            send_verification_email(self.object,obj.email_token,'registercnfrm.html')
-            messages.success(self.request,'Please check your email for verification')
-            
-            return our_user
+        response = super().form_valid(form)
+        account, _ = AccountModel.objects.get_or_create(user=self.object)
+        try:
+            send_verification_email(
+                self.request,
+                self.object,
+                account.email_token,
+            )
+        except Exception:
+            logger.exception("Could not send verification email for user %s", self.object.pk)
+            messages.warning(
+                self.request,
+                "Your account was created, but the verification email could not be sent. "
+                "Please contact support.",
+            )
+        else:
+            messages.success(
+                self.request,
+                "Please check your email to verify your account.",
+            )
+        return response
 
 
-def verify(request,token):
-    try :
-        user_obj = AccountModel.objects.get(email_token=token)
-        user_obj.is_activated=True
-        user_obj.save() 
-        messages.success(request,'Email verification successfull!')
-        return redirect('login')
-    except Exception as e:
-        messages.error(request,'Invalid Token')
-        return redirect('login')
+def verify(request, token):
+    try:
+        account = AccountModel.objects.get(email_token=token)
+    except (AccountModel.DoesNotExist, ValueError):
+        messages.error(request, "This verification link is invalid or has expired.")
+        return redirect("login")
+
+    account.is_activated = True
+    account.email_token = None
+    account.save(update_fields=("is_activated", "email_token"))
+    messages.success(request, "Email verification was successful. You can now log in.")
+    return redirect("login")
 
 
+class LoginUserView(LoginView):
+    template_name = "login.html"
+    redirect_authenticated_user = True
 
-
-class login_user(LoginView):
-    template_name = 'login.html'
-    def get_success_url(self):
-        return reverse_lazy('home')
     def form_valid(self, form):
-        # return super().form_valid(form)
-        user_data = form.cleaned_data['username']
-        user_obj = User.objects.get(username =user_data)
-        account_obj = AccountModel.objects.get(user=user_obj)
-        if account_obj.is_activated:
-            messages.success(self.request,'Logged in Successfully')
+        user = form.get_user()
+        account = AccountModel.objects.filter(user=user).first()
+        if user.is_staff or (account and account.is_activated):
+            messages.success(self.request, "Logged in successfully.")
             return super().form_valid(form)
-            
-        else :
-            messages.error(self.request,'Please verify your email')
-            return redirect('login')
-    
-    def form_invalid(self, form):
-        messages.error(self.request,"Credentials doesn't match")
-        return super().form_invalid(form)
-    
 
-@login_required(login_url='login')
+        messages.error(self.request, "Please verify your email before logging in.")
+        return redirect("login")
+
+    def form_invalid(self, form):
+        messages.error(self.request, "The username or password is incorrect.")
+        return super().form_invalid(form)
+
+
+@login_required(login_url="login")
+@require_POST
 def userlogout(request):
     logout(request)
-    messages.warning(request,'Logged out Successfully')
-    return redirect('home')
+    messages.warning(request, "Logged out successfully.")
+    return redirect("home")
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
 def Profile(request):
-    return render(request,'profile.html')
+    return render(request, "profile.html")
 
-@method_decorator(login_required(login_url='login'),name = 'dispatch')  
-class updatedata(UpdateView):
-    model = User
+
+@method_decorator(login_required(login_url="login"), name="dispatch")
+class UpdateProfileView(UpdateView):
     form_class = ChangeData
-    template_name = 'chngedata.html'
-    success_url = reverse_lazy('profile')
-    pk_url_kwarg = 'id'
+    template_name = "chngedata.html"
+    success_url = reverse_lazy("profile")
 
-@login_required(login_url='login')
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        old_email = self.request.user.email
+        response = super().form_valid(form)
+        if old_email.lower() != self.object.email.lower():
+            account, _ = AccountModel.objects.get_or_create(user=self.object)
+            account.is_activated = False
+            account.email_token = uuid.uuid4()
+            account.save(update_fields=("is_activated", "email_token"))
+            try:
+                send_verification_email(
+                    self.request,
+                    self.object,
+                    account.email_token,
+                )
+            except Exception:
+                logger.exception(
+                    "Could not send changed-email verification for user %s",
+                    self.object.pk,
+                )
+                messages.warning(
+                    self.request,
+                    "Profile updated, but the verification email could not be sent.",
+                )
+            else:
+                messages.info(
+                    self.request,
+                    "Profile updated. Verify your new email before your next login.",
+                )
+        else:
+            messages.success(self.request, "Profile updated.")
+        return response
+
+
+@login_required(login_url="login")
 def passchnge(request):
-    if request.method == 'POST':
-        form = PasswordChangeForm(user = request.user,data = request.POST)
-        if form.is_valid():
-            form.save()
-            update_session_auth_hash(request,form.user)
-            return redirect ('profile')
-    else :
-        form = PasswordChangeForm(user = request.user)
-    return render(request,'chngepass.html',{'form':form})
+    form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        update_session_auth_hash(request, form.user)
+        messages.success(request, "Your password was changed.")
+        return redirect("profile")
+    return render(request, "chngepass.html", {"form": form})

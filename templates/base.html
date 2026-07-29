@@ -20,7 +20,7 @@
       <div class="bg-slate-800">
         <nav class="max-w-7xl mx-auto flex justify-between item-center p-4">
           <div class="flex item-center gap-2">
-            <a href={%url 'home'%} class="text-white text-md md:text-2xl font-serif hover:text-slate-300 transition-colors duration-300">
+            <a href="{% url 'home' %}" class="text-white text-md md:text-2xl font-serif hover:text-slate-300 transition-colors duration-300">
               FoodFanatic
             </a>
           </div>
@@ -48,7 +48,10 @@
               <li
                 class="hover:bg-slate-500 px-[2px] my-auto text-xs md:text-base md:px-1 lg:px-2 py-[1px] md:py-[2px] lg:py-1 rounded-md border-b-2 border-b-slate-400 hover:border-b-slate-400 transition-colors duration-300"
               >
-                <a href="{%url 'logout'%}">Logout</a>
+                <form method="post" action="{% url 'logout' %}">
+                  {% csrf_token %}
+                  <button type="submit">Logout</button>
+                </form>
               </li>
               <li
                 class="hover:bg-slate-500 px-[2px] my-auto text-xs md:text-base md:px-1 lg:px-2 py-[1px] md:py-[2px] lg:py-1 rounded-md border-b-2 border-b-slate-400 hover:border-b-slate-400 transition-colors duration-300"
@@ -76,6 +79,16 @@
 
       <!-- Banner -->
     </header>
+
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 pt-4" aria-live="polite">
+      {% for message in messages %}
+      <div class="mb-2 rounded-md bg-slate-100 border border-slate-300 px-4 py-3">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     {%block content%} {%endblock %}
 
@@ -140,7 +153,7 @@
         <a href="#" class="hover:cursor-pointer">Blog</a>
       </ul>
       <p class="text-center flex items-center justify-center my-3">
-        © 2021 All Rights Reserved
+        &copy; {% now "Y" %} All Rights Reserved
       </p>
     </footer>
 

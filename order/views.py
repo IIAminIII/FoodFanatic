@@ -1,88 +1,103 @@
-from django.shortcuts import render,redirect,get_object_or_404
-from menu.models import CartItem,FoodItem
-from .models import OrderItem,Order
-from django.contrib.auth.decorators import login_required
 from decimal import Decimal
-from datetime import datetime
-from django.db.models import Sum
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView
+
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+from django.views.generic import ListView
 
-# Create your views here.
-@login_required(login_url='login')
+from menu.models import CartItem
+
+from .forms import OrderHistoryFilterForm
+from .models import Order, OrderItem
+
+
+@login_required(login_url="login")
+@require_POST
+@transaction.atomic
 def place_order(request):
-    cart_items = CartItem.objects.filter(user=request.user)
-
+    cart_items = list(
+        CartItem.objects.select_for_update()
+        .filter(user=request.user)
+        .select_related("product")
+    )
     if not cart_items:
-        messages.info(request, "Your cart is empty. Please add items to your cart before placing an order.")
-        return redirect('cart')
+        messages.info(
+            request,
+            "Your cart is empty. Add an item before placing an order.",
+        )
+        return redirect("cart")
 
-    order = Order.objects.create(user=request.user, status='PENDING')
+    unavailable = [item.product.title for item in cart_items if not item.product.is_available]
+    if unavailable:
+        messages.error(
+            request,
+            f"These items are no longer available: {', '.join(unavailable)}.",
+        )
+        return redirect("cart")
 
-    for item in cart_items:
-        item_price = item.product.price 
-        OrderItem.objects.create(order=order, cartitem=item, quantity=item.quantity, price=item_price)
+    total_amount = sum(
+        (item.line_total for item in cart_items),
+        start=Decimal("0.00"),
+    )
+    order = Order.objects.create(user=request.user, total_amount=total_amount)
+    OrderItem.objects.bulk_create(
+        [
+            OrderItem(
+                order=order,
+                product=item.product,
+                product_name=item.product.title,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+            for item in cart_items
+        ]
+    )
+    CartItem.objects.filter(pk__in=[item.pk for item in cart_items]).delete()
 
-    CartItem.objects.filter(user=request.user).delete()
+    messages.success(request, "Your order has been placed successfully.")
+    return redirect("order_details", order_id=order.id)
 
-    messages.success(request, "Your order has been placed successfully!")
-    return redirect('order_details', order_id=order.id)  
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def order_details(request, order_id):
-    order = get_object_or_404(Order, pk=order_id, user=request.user)
-    order_items = order.items.all()
-    total_cost = sum(item.price * item.quantity for item in order_items)
-    return render(request, 'order_details.html', {'order': order, 'order_items': order_items, 'total_cost': total_cost})
-
-# def checkout(request, order_id):
-    
-#     return redirect('order_details', order_id=order_id)
-
-# def product_list(request):
-#     products = SpecialOffer.objects.all()
-#     active_offers = SpecialOffer.objects.filter(active=True)
-   
-        
-#     return render(request, 'product_list.html', {'active_offers': active_offers,'products':products})
-
-
-# def product_list(request):
-#     products = FoodItem.objects.all()
-#     active_offers = SpecialOffer.objects.all
-#     for product in products:
-#         discount_percentage = Decimal(str(discount_percentage))
-#         discounted_price = product.price * (1 - discount_percentage / 100)
-#     product.discounted_price = discounted_price
-
-#     return render(request, 'product_list.html', {'products': active_offers,''})
-
-
-
-
-
-
-
-
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id,
+        user=request.user,
+    )
+    return render(
+        request,
+        "order_details.html",
+        {"order": order, "order_items": order.items.all()},
+    )
 
 
 class OrderHistoryView(LoginRequiredMixin, ListView):
-    template_name = 'orderhistory.html'
+    template_name = "orderhistory.html"
     model = Order
-    balance = 0 # filter korar pore ba age amar total balance ke show korbe
-    
+    paginate_by = 20
+
     def get_queryset(self):
-        queryset = super().get_queryset().filter(
-            user=self.request.user
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(user=self.request.user)
+            .prefetch_related("items")
         )
-        start_date_str = self.request.GET.get('start_date')
-        end_date_str = self.request.GET.get('end_date')
-        
-        if start_date_str and end_date_str:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            
-            queryset = queryset.filter(placed_at__date__gte=start_date, placed_at__date__lte=end_date)
-       
-        return queryset.distinct()
+        self.filter_form = OrderHistoryFilterForm(self.request.GET or None)
+        if self.filter_form.is_valid():
+            start_date = self.filter_form.cleaned_data.get("start_date")
+            end_date = self.filter_form.cleaned_data.get("end_date")
+            if start_date:
+                queryset = queryset.filter(placed_at__date__gte=start_date)
+            if end_date:
+                queryset = queryset.filter(placed_at__date__lte=end_date)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filter_form"] = self.filter_form
+        return context

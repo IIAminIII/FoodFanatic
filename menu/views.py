@@ -1,79 +1,114 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from decimal import Decimal
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import FoodItem,CartItem,Category,Review
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from order.models import Order, OrderItem
+
 from .forms import ReviewForm
-from order.models import Order
-# from order.models import SpecialOffer
+from .models import CartItem, FoodItem, Review
 
-@login_required(login_url='login')
+
+@login_required(login_url="login")
+@require_POST
+@transaction.atomic
 def add_to_cart(request, product_id):
-    product = get_object_or_404(FoodItem, pk=product_id)
-    
-    cart_item = CartItem.objects.filter(product=product, user=request.user).first()
-    if cart_item:
+    product = get_object_or_404(FoodItem, pk=product_id, is_available=True)
+    cart_item, created = CartItem.objects.select_for_update().get_or_create(
+        product=product,
+        user=request.user,
+        defaults={"unit_price": product.current_price, "quantity": 1},
+    )
+    if not created:
         cart_item.quantity += 1
-        cart_item.save()
-    else:
-        item = CartItem.objects.create(product=product, user=request.user,price = product.price, quantity=1)
-        special = FoodItem.objects.filter(active = True).first()
-        if product.active :
-            item.price= product.discount_price
-            item.save()
-            
-    return redirect('cart')
+        cart_item.unit_price = product.current_price
+        cart_item.save(update_fields=("quantity", "unit_price"))
+
+    messages.success(request, f"{product.title} was added to your cart.")
+    return redirect("cart")
 
 
-@login_required(login_url='login')
+@login_required(login_url="login")
 def view_cart(request):
-    cart_items = CartItem.objects.filter(user=request.user)
-    total_price = sum(item.price * item.quantity for item in cart_items)
-    dis_total = sum(item.product.discount_price * item.quantity for item in cart_items)
-    return render(request, 'cart.html', {'cart_items': cart_items, 'total_price': total_price,'dis_total':dis_total})
+    cart_items = list(
+        CartItem.objects.filter(user=request.user).select_related("product")
+    )
+    total_price = sum(
+        (item.line_total for item in cart_items),
+        start=Decimal("0.00"),
+    )
+    return render(
+        request,
+        "cart.html",
+        {"cart_items": cart_items, "total_price": total_price},
+    )
 
 
-
-@login_required(login_url='login')
+@login_required(login_url="login")
+@require_POST
+@transaction.atomic
 def remove_from_cart(request, item_id):
-    cart_item = get_object_or_404(CartItem, pk=item_id)
+    cart_item = get_object_or_404(
+        CartItem.objects.select_for_update(),
+        pk=item_id,
+        user=request.user,
+    )
     if cart_item.quantity > 1:
         cart_item.quantity -= 1
-        cart_item.save()
+        cart_item.save(update_fields=("quantity",))
     else:
         cart_item.delete()
-    return redirect('cart')
-
-def details(request,id):
-    item = FoodItem.objects.get(pk=id)
-    review =Review.objects.filter(item=item)
-
-    if request.user.is_authenticated :
-        has_ordered = Order.objects.filter(user=request.user,id = id).exists()
-        return render(request,'fooddetail.html',{'has_ordered':has_ordered,'item':item,'review':review})
-    else:
-        return render(request,'fooddetail.html',{'item':item,'review':review})
+    return redirect("cart")
 
 
+def details(request, id):
+    item = get_object_or_404(
+        FoodItem.objects.prefetch_related("category"),
+        pk=id,
+        is_available=True,
+    )
+    reviews = item.reviews.select_related("reviewer")
+    has_ordered = False
+    if request.user.is_authenticated:
+        has_ordered = (
+            OrderItem.objects.filter(order__user=request.user, product=item)
+            .exclude(order__status=Order.Status.CANCELLED)
+            .exists()
+        )
+    return render(
+        request,
+        "fooddetail.html",
+        {"has_ordered": has_ordered, "item": item, "review": reviews},
+    )
 
-    # if request.method == 'POST':
-    #     form = ReviewForm(request.POST)
-    #     if form.is_valid():
-    #         review = form.save(commit=False)
-    #         review.item = item
-    #         review.save()
-    #         return redirect('detail',id = id)
-    # else :
-    #     form = ReviewForm()
-    # return render (request,'fooddetail.html',{'item':item,'form':form,'review':review})
 
-@login_required(login_url='login')
-def ReviewView(request,id):
-    form =ReviewForm()
-    if request.method=='POST':
-        form =ReviewForm(request.POST)
-        if form.is_valid():
-            item = FoodItem.objects.get(pk=id)
-            body = form.cleaned_data['body']
-            rating = form.cleaned_data['rating']
-            Review.objects.create(reviewer=request.user,body=body ,item=item,rating = rating)
-            return redirect('detail',id=id)
-    return render(request,'review.html',{'form':form})
+@login_required(login_url="login")
+def ReviewView(request, id):
+    item = get_object_or_404(FoodItem, pk=id, is_available=True)
+    has_ordered = (
+        OrderItem.objects.filter(order__user=request.user, product=item)
+        .exclude(order__status=Order.Status.CANCELLED)
+        .exists()
+    )
+    if not has_ordered:
+        messages.error(request, "You can review an item after purchasing it.")
+        return redirect("detail", id=id)
+
+    review = (
+        Review.objects.filter(reviewer=request.user, item=item)
+        .order_by("-created")
+        .first()
+    )
+    form = ReviewForm(request.POST or None, instance=review)
+    if request.method == "POST" and form.is_valid():
+        saved_review = form.save(commit=False)
+        saved_review.reviewer = request.user
+        saved_review.item = item
+        saved_review.save()
+        messages.success(request, "Thank you for your review.")
+        return redirect("detail", id=id)
+
+    return render(request, "review.html", {"form": form, "item": item})

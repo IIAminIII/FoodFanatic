@@ -1,14 +1,19 @@
-from django.shortcuts import render
-from menu.models import Category,FoodItem
-def home(request,category_slug = None):
-    data = FoodItem.objects.all()
- 
+from django.shortcuts import get_object_or_404, render
+
+from menu.models import Category, FoodItem
+
+
+def home(request, category_slug=None):
+    food_items = FoodItem.objects.filter(is_available=True).prefetch_related("category")
     if category_slug is not None:
-        category = Category.objects.get(slug= category_slug)
-        data = FoodItem.objects.filter(category=category)
+        category = get_object_or_404(Category, slug=category_slug)
+        food_items = food_items.filter(category=category)
 
-    category = Category.objects.all()
-
-
-
-    return render(request,'home.html',{'data':data,'categories':category})
+    return render(
+        request,
+        "home.html",
+        {
+            "data": food_items,
+            "categories": Category.objects.all(),
+        },
+    )

@@ -10,11 +10,13 @@
       class="flex flex-col md:flex-row justify-center items-start gap-2 lg:gap-5 w-fit mx-2 lg:mx-auto rounded-md"
     >
       {% comment %}Food Image {% endcomment %}
+      {% if item.image %}
       <img
         src="{{ item.image.url }}"
-        class="w-[460px] lg:w-[550px] h-[250px] lg:h-[370px] rounded-md"
-        alt="{{ item.name }} Image"
+        class="w-[460px] lg:w-[550px] h-[250px] lg:h-[370px] rounded-md object-cover"
+        alt="{{ item.title }}"
       />
+      {% endif %}
 
       <div
         class="-[460px] lg:w-[550px] h-[250px] lg:h-[370px] bg-slate-800 p-5 flex flex-col text-white rounded-md"
@@ -33,35 +35,32 @@
 
         {% endfor %}
         <h4 class="text-lg lg:text-xl lg:font-semibold items-stretch">
-          Price: $ {%if item.active %} {{item.discount_price}} {%else%}
+          Price: $ {%if item.is_discount_active %} {{item.current_price}} {%else%}
           {{item.price}} {%endif%}
         </h4>
 
         <div class="mt-4">
-          {% comment %} {% if has_ordered %} {% endcomment %}
+          {% if has_ordered %}
           <a
             class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
             href="{% url 'review' item.id %}"
             >Write a Review</a
           >
-          <a
-            class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-            href="{% url 'addcart' item.id %}"
-            >Add To Cart</a
-          >
+          {% endif %}
+          <form class="inline" method="post" action="{% url 'addcart' item.id %}">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
+            >
+              Add To Cart
+            </button>
+          </form>
           <a
             class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
             href="{% url 'cart' %}"
             >View Cart</a
           >
-          {% comment %} {% else %}
-          <a
-            class="bg-gray-500 text-xl px-3 py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-            href="{% url 'addcart' item.id %}"
-            >Add To Cart</a
-          >
-
-          {% endif %} {% endcomment %}
         </div>
       </div>
     </div>
@@ -85,7 +84,7 @@
         <h5 class="text-xl font-semibold uppercase">
           {{cm.reviewer.first_name}} {{cm.reviewer.last_name}}
         </h5>
-        <p class="">{{cm.rating}}</p>
+        <p aria-label="{{ cm.rating }} out of 5 stars">{{ cm.rating_stars }}</p>
         <p class="">{{cm.body}}</p>
       </div>
       {% endfor %}

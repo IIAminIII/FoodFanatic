@@ -6,6 +6,9 @@ endcomment %} {% comment %} {% block head_title %} Transaction Report{% endblock
   <h1 class="font-bold text-3xl text-center pb-5 pt-2">Order History</h1>
   <hr />
   <form method="get" action="{% url 'orderhistory' %}">
+    {% if filter_form.non_field_errors %}
+      <div class="text-red-700 text-center mt-4">{{ filter_form.non_field_errors }}</div>
+    {% endif %}
     <div class="flex justify-center">
       <div
         class="mt-10 pl-3 pr-2 bg-white border rounded-md border-gray-500 flex justify-between items-center relative w-4/12 mx-2"
@@ -16,6 +19,7 @@ endcomment %} {% comment %} {% block head_title %} Transaction Report{% endblock
           type="date"
           id="start_date"
           name="start_date"
+          value="{{ request.GET.start_date }}"
         />
       </div>
 
@@ -28,6 +32,7 @@ endcomment %} {% comment %} {% block head_title %} Transaction Report{% endblock
           type="date"
           id="end_date"
           name="end_date"
+          value="{{ request.GET.end_date }}"
         />
       </div>
       <div
@@ -58,13 +63,26 @@ endcomment %} {% comment %} {% block head_title %} Transaction Report{% endblock
       <tr class="border-b dark:border-neutral-500">
         <td class="px-4 py-2">{{ order.id }}</td>
         <td class="px-4 py-2">{{ order.placed_at|date }}</td>
-        <td class="px-4 py-2">{{ order.status }}</td>
+        <td class="px-4 py-2">{{ order.get_status_display }}</td>
         <td class="px-4 py-2">
-          <a href="#">View details</a>
+          <a class="underline" href="{% url 'order_details' order.id %}">View details</a>
         </td>
       </tr>
+      {% empty %}
+      <tr><td class="px-4 py-4 text-center" colspan="4">No orders found.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% if is_paginated %}
+  <nav class="flex justify-center gap-4 mt-6" aria-label="Order history pages">
+    {% if page_obj.has_previous %}
+      <a class="underline" href="?page={{ page_obj.previous_page_number }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="underline" href="?page={{ page_obj.next_page_number }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}">Next</a>
+    {% endif %}
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}
