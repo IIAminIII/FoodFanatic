@@ -75,6 +75,11 @@ injected `DATABASE_URL` or `POSTGRES_URL`. Run the seed and superuser commands
 from a trusted workstation or CI job with the production database URL. Do not
 store that URL in Git.
 
+Supabase's Vercel integration may append a `supa` routing marker to
+`POSTGRES_URL`. FoodFanatic removes that provider metadata before passing the
+remaining connection options to psycopg. Transaction-pooler URLs on port 6543
+also disable prepared statements and server-side cursors.
+
 ## Later deployments
 
 Run `python manage.py migrate` during every deployment. Migrations modify the

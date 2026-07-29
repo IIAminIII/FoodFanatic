@@ -7,6 +7,8 @@ import environ
 
 from django.core.exceptions import ImproperlyConfigured
 
+from .database import build_database_config
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 IS_VERCEL = os.environ.get("VERCEL") == "1"
 
@@ -99,7 +101,7 @@ database_url = env("DATABASE_URL", default="") or env(
     default="",
 )
 if database_url:
-    DATABASES = {"default": env.db_url_config(database_url)}
+    DATABASES = {"default": build_database_config(database_url)}
 else:
     if IS_VERCEL:
         raise ImproperlyConfigured(
