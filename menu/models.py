@@ -87,6 +87,12 @@ class FoodItem(models.Model):
             return 0
         return round((self.price - self.discount_price) * 100 / self.price)
 
+    @property
+    def discount_amount(self):
+        if not self.is_discount_active:
+            return Decimal("0.00")
+        return self.price - self.discount_price
+
 
 class CartItem(models.Model):
     product = models.ForeignKey(FoodItem, on_delete=models.CASCADE)
@@ -140,6 +146,10 @@ class Review(models.Model):
     @property
     def rating_stars(self):
         return "★" * self.rating
+
+    @property
+    def rating_stars_empty(self):
+        return "★" * (5 - self.rating)
 
     def __str__(self):
         return f"{self.rating}/5 review of {self.item} by {self.reviewer}"

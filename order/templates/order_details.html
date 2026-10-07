@@ -7,7 +7,18 @@
     <p>Placed: {{ order.placed_at|date:"M j, Y, g:i A" }}</p>
     <p>{% include "includes/status_badge.html" with order=order %}</p>
   </div>
-  <a class="underline" href="{% url 'orderhistory' %}">&larr; Back to order history</a>
+  <div class="flex items-center justify-between gap-4">
+    <a class="underline" href="{% url 'orderhistory' %}">&larr; Back to order history</a>
+    {% if order.status == "PENDING" %}
+    <form method="post" action="{% url 'cancel_order' order.pk %}"
+          onsubmit="return confirm('Cancel order #{{ order.pk }}? This cannot be undone.');">
+      {% csrf_token %}
+      <button type="submit" class="rounded-xl px-4 py-2 text-sm font-bold text-red-600 ring-1 ring-red-200 hover:bg-red-50 transition-colors">
+        Cancel this order
+      </button>
+    </form>
+    {% endif %}
+  </div>
   <div class="overflow-x-auto">
     <table class="table-auto w-full border">
       <thead class="bg-slate-800 text-white">

@@ -214,3 +214,75 @@ class OrderSummaryTests(TestCase):
 
         self.assertEqual(order.items_summary, "")
 
+
+
+class OrderManagementTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user("buyer", password="test-password")
+        self.staff = User.objects.create_user(
+            "chef", password="test-password", is_staff=True
+        )
+        self.order = Order.objects.create(
+            user=self.customer, total_amount=Decimal("300.00")
+        )
+
+    def test_dashboard_requires_staff(self):
+        self.client.force_login(self.customer)
+        response = self.client.get(reverse("manage_orders"))
+        self.assertEqual(response.status_code, 302)
+
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("manage_orders"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_staff_advances_order_through_the_flow(self):
+        self.client.force_login(self.staff)
+        url = reverse("update_order_status", args=(self.order.pk,))
+
+        for expected in (
+            Order.Status.PREPARING,
+            Order.Status.READY,
+            Order.Status.COMPLETED,
+        ):
+            self.client.post(url, {"action": "advance"})
+            self.order.refresh_from_db()
+            self.assertEqual(self.order.status, expected)
+
+        # A completed order has no further transition.
+        self.client.post(url, {"action": "advance"})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.COMPLETED)
+
+    def test_non_staff_cannot_update_status(self):
+        self.client.force_login(self.customer)
+        self.client.post(
+            reverse("update_order_status", args=(self.order.pk,)),
+            {"action": "advance"},
+        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.PENDING)
+
+    def test_customer_cancels_only_while_pending(self):
+        self.client.force_login(self.customer)
+        url = reverse("cancel_order", args=(self.order.pk,))
+
+        self.client.post(url)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.CANCELLED)
+
+        preparing = Order.objects.create(
+            user=self.customer,
+            total_amount=Decimal("100.00"),
+            status=Order.Status.PREPARING,
+        )
+        self.client.post(reverse("cancel_order", args=(preparing.pk,)))
+        preparing.refresh_from_db()
+        self.assertEqual(preparing.status, Order.Status.PREPARING)
+
+    def test_customer_cannot_cancel_someone_elses_order(self):
+        intruder = User.objects.create_user("intruder", password="test-password")
+        self.client.force_login(intruder)
+        response = self.client.post(reverse("cancel_order", args=(self.order.pk,)))
+        self.assertEqual(response.status_code, 404)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.PENDING)

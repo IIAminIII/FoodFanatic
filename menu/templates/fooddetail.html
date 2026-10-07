@@ -1,100 +1,120 @@
-{% extends "base.html" %} {% load crispy_forms_tags %} {% block content %}
+{% extends "base.html" %} {% block content %}
 
-<div class="">
-  <div class="pt-5 max-w-7xl mx-auto my-24">
-    <h1 class="text-center text-3xl lg:text-5xl font-semibold mb-10">
-      {{ item.title}}
-    </h1>
-    {% comment %} Single Food Detail {% endcomment %}
-    <div
-      class="flex flex-col md:flex-row justify-center items-start gap-2 lg:gap-5 w-fit mx-2 lg:mx-auto rounded-md"
-    >
-      {% comment %}Food Image {% endcomment %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+  <a href="{% url 'home' %}" class="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-600 transition-colors mb-6">
+    ← Back to menu
+  </a>
+
+  <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
+    {% comment %} Image {% endcomment %}
+    <div class="relative rounded-3xl overflow-hidden shadow-soft ring-1 ring-slate-200/60 bg-white">
       {% if item.image %}
       <img
         src="{{ item.image.url }}"
-        class="w-[460px] lg:w-[550px] h-[250px] lg:h-[370px] rounded-md object-cover"
         alt="{{ item.title }}"
+        class="w-full h-72 md:h-[430px] object-cover"
+        fetchpriority="high"
       />
+      {% else %}
+      <div class="w-full h-72 md:h-[430px] grid place-items-center bg-slate-100 text-6xl">🍽️</div>
       {% endif %}
+      {% if item.is_discount_active %}
+      <span class="absolute top-4 left-4 rounded-full bg-red-600 text-white text-sm font-extrabold px-3 py-1.5 shadow-lg">
+        -{{ item.discount_percent }}% OFF
+      </span>
+      {% endif %}
+    </div>
 
-      <div
-        class="-[460px] lg:w-[550px] h-[250px] lg:h-[370px] bg-slate-800 p-5 flex flex-col text-white rounded-md"
-      >
-        <h2 class="text-lg lg:text-3xl font-semibold my-2 lg:my-4">
-          {{ item.title}}
-        </h2>
-        <p class="text-xs lg:text-lg mb-2">
-          Description: {{ item.description|truncatewords:20 }}
-        </p>
-
+    {% comment %} Info {% endcomment %}
+    <div>
+      <div class="flex flex-wrap gap-2 mb-3">
         {% for cat in item.category.all %}
-        <h4 class="bg-gray-500 rounded-md w-fit px-3 py-1 text-sm mb-2">
-          {{cat.name}}
-        </h4>
-
+        <a href="{% url 'catfilter' cat.slug %}" class="rounded-full bg-brand-50 text-brand-700 text-xs font-bold px-3 py-1.5 hover:bg-brand-100 transition-colors">
+          {{ cat.name }}
+        </a>
         {% endfor %}
-        <h4 class="text-lg lg:text-xl lg:font-semibold items-stretch">
-          Price:
-          {% if item.is_discount_active %}
-          ৳{{ item.current_price|floatformat:0 }}
-          <del class="text-gray-400 text-base ml-1">৳{{ item.price|floatformat:0 }}</del>
-          <span class="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">-{{ item.discount_percent }}%</span>
-          {% else %}
-          ৳{{ item.price|floatformat:0 }}
-          {% endif %}
-        </h4>
+      </div>
 
-        <div class="mt-4">
-          {% if has_ordered %}
-          <a
-            class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-            href="{% url 'review' item.id %}"
-            >Write a Review</a
-          >
-          {% endif %}
-          <form class="inline" method="post" action="{% url 'addcart' item.id %}">
-            {% csrf_token %}
-            <button
-              type="submit"
-              class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-            >
-              Add To Cart
-            </button>
-          </form>
-          <a
-            class="bg-gray-500 text-lg lg:text-xl px-1 lg:px-3 py-[2px] lg:py-1 rounded-md hover:bg-gray-600 transition-colors duration-300"
-            href="{% url 'cart' %}"
-            >View Cart</a
-          >
+      <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">{{ item.title }}</h1>
+
+      <div class="mt-2 flex items-center gap-2 text-sm">
+        {% if rating.count %}
+        <span class="text-amber-500 text-base">★</span>
+        <span class="font-bold text-slate-800">{{ rating.avg|floatformat:1 }}</span>
+        <span class="text-slate-400">· {{ rating.count }} review{{ rating.count|pluralize }}</span>
+        {% else %}
+        <span class="text-slate-400">No reviews yet — be the first!</span>
+        {% endif %}
+      </div>
+
+      <p class="mt-4 text-slate-600 leading-relaxed">{{ item.description }}</p>
+
+      <div class="mt-6 flex items-baseline gap-3">
+        <span class="text-4xl font-extrabold text-slate-900">৳{{ item.current_price|floatformat:0 }}</span>
+        {% if item.is_discount_active %}
+        <del class="text-xl text-slate-400">৳{{ item.price|floatformat:0 }}</del>
+        <span class="text-sm font-bold text-green-600">You save ৳{{ item.discount_amount|floatformat:0 }}</span>
+        {% endif %}
+      </div>
+
+      {% comment %} Quantity + add to cart {% endcomment %}
+      <form method="post" action="{% url 'addcart' item.id %}" class="mt-8 flex flex-wrap items-center gap-3">
+        {% csrf_token %}
+        <div class="inline-flex items-center rounded-xl ring-1 ring-slate-300 bg-white overflow-hidden">
+          <button type="button" class="px-4 py-3 text-lg font-bold text-slate-600 hover:bg-slate-100 transition-colors" onclick="var q=document.getElementById('qty'); q.value=Math.max(1, +q.value-1)" aria-label="Decrease quantity">−</button>
+          <input id="qty" name="quantity" type="number" min="1" max="20" value="1" class="w-14 text-center font-bold text-slate-900 focus:outline-none" aria-label="Quantity" />
+          <button type="button" class="px-4 py-3 text-lg font-bold text-slate-600 hover:bg-slate-100 transition-colors" onclick="var q=document.getElementById('qty'); q.value=Math.min(20, +q.value+1)" aria-label="Increase quantity">+</button>
         </div>
+        <button
+          type="submit"
+          class="flex-1 min-w-[180px] rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-extrabold px-8 py-3.5 shadow-lg shadow-orange-200 transition-colors"
+        >
+          Add to cart
+        </button>
+      </form>
+
+      <div class="mt-4 flex gap-3 text-sm font-bold">
+        <a href="{% url 'cart' %}" class="text-slate-600 hover:text-brand-600 underline underline-offset-4 transition-colors">Go to cart →</a>
+        {% if has_ordered %}
+        <a href="{% url 'review' item.id %}" class="text-slate-600 hover:text-brand-600 underline underline-offset-4 transition-colors">Write a review</a>
+        {% endif %}
       </div>
     </div>
-    {% comment %} Single Food Detail Ends {% endcomment %}
   </div>
 
-  <div class="text-center">
-    <h1 class="text-5xl font-semibold text-center mb-10">
-      Reviews: {{review | length}}
-    </h1>
-    <div
-      class="max-w-7xl w-fit lg:w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 items-center justify-center gap-3"
-    >
-      {% for cm in review %}
+  {% comment %} Reviews {% endcomment %}
+  <section class="mt-16 md:mt-24">
+    <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-6">
+      Customer Reviews
+      {% if rating.count %}<span class="text-slate-400 font-semibold text-xl">({{ rating.count }})</span>{% endif %}
+    </h2>
 
-      <div
-        class="text-white bg-slate-800 p-5 rounded-md space-y-4 mb-5"
-        style="max-width: 18rem"
-      >
-        <p class="">{{cm.created}}</p>
-        <h5 class="text-xl font-semibold uppercase">
-          {{cm.reviewer.first_name}} {{cm.reviewer.last_name}}
-        </h5>
-        <p aria-label="{{ cm.rating }} out of 5 stars">{{ cm.rating_stars }}</p>
-        <p class="">{{cm.body}}</p>
-      </div>
+    {% if review %}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for cm in review %}
+      <article class="rounded-2xl bg-white shadow-soft ring-1 ring-slate-200/60 p-5">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-brand-500 to-amber-400 grid place-items-center text-white font-extrabold">
+            {{ cm.reviewer.username|first|upper }}
+          </span>
+          <div class="min-w-0">
+            <p class="font-bold text-slate-900 truncate">
+              {% if cm.reviewer.first_name %}{{ cm.reviewer.first_name }} {{ cm.reviewer.last_name }}{% else %}{{ cm.reviewer.username }}{% endif %}
+            </p>
+            <p class="text-xs text-slate-400">{{ cm.created|date:"M j, Y" }}</p>
+          </div>
+        </div>
+        <p class="text-amber-500 mb-2" aria-label="{{ cm.rating }} out of 5 stars">{{ cm.rating_stars }}<span class="text-slate-200">{{ cm.rating_stars_empty }}</span></p>
+        <p class="text-slate-600 text-sm leading-relaxed">{{ cm.body }}</p>
+      </article>
       {% endfor %}
     </div>
-  </div>
+    {% else %}
+    <div class="rounded-2xl bg-white ring-1 ring-slate-200 p-10 text-center text-slate-500">
+      No reviews yet. Order this dish and share the first review!
+    </div>
+    {% endif %}
+  </section>
 </div>
+
 {% endblock %}

@@ -47,12 +47,18 @@
         <div class="flex items-center gap-1 sm:gap-2 text-sm font-semibold">
           <a href="{% url 'home' %}" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition">Menu</a>
           {% if user.is_authenticated %}
+            {% if user.is_staff %}
+              <a href="{% url 'manage_orders' %}" class="px-3 py-2 rounded-lg text-amber-300 hover:text-amber-200 hover:bg-white/10 transition">Dashboard</a>
+            {% endif %}
             <a href="{% url 'orderhistory' %}" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition">Orders</a>
             <a href="{% url 'profile' %}" class="px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition">Account</a>
-            <a href="{% url 'cart' %}" class="relative p-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition" aria-label="View cart">
+            <a href="{% url 'cart' %}" class="relative p-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition" aria-label="View cart{% if cart_count %} ({{ cart_count }} items){% endif %}">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.5h7.7a2 2 0 0 0 1.9-1.4L21 8H7M10 20h.01M17 20h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+              {% if cart_count %}
+              <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-brand-500 text-white text-[11px] font-extrabold grid place-items-center px-1">{{ cart_count }}</span>
+              {% endif %}
             </a>
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}

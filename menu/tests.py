@@ -303,3 +303,37 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertEqual(response.context["offers"], [])
+
+
+class CartFeatureTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("snacker", password="test-password")
+        self.item = FoodItem.objects.create(
+            title="Fries",
+            description="Crispy fries.",
+            price=Decimal("120.00"),
+        )
+        self.client.force_login(self.user)
+
+    def test_add_to_cart_respects_quantity_field(self):
+        self.client.post(reverse("addcart", args=(self.item.pk,)), {"quantity": 3})
+        cart_item = CartItem.objects.get(user=self.user, product=self.item)
+        self.assertEqual(cart_item.quantity, 3)
+
+    def test_add_to_cart_clamps_bad_quantities(self):
+        self.client.post(
+            reverse("addcart", args=(self.item.pk,)), {"quantity": "999"}
+        )
+        self.assertEqual(
+            CartItem.objects.get(user=self.user, product=self.item).quantity, 20
+        )
+
+    def test_navbar_shows_cart_count(self):
+        CartItem.objects.create(
+            user=self.user,
+            product=self.item,
+            quantity=4,
+            unit_price=Decimal("120.00"),
+        )
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.context["cart_count"], 4)

@@ -37,8 +37,31 @@ class Order(models.Model):
     class Meta:
         ordering = ("-placed_at",)
 
+    STATUS_FLOW = {
+        Status.PENDING: Status.PREPARING,
+        Status.PREPARING: Status.READY,
+        Status.READY: Status.COMPLETED,
+    }
+    NEXT_ACTION_LABELS = {
+        Status.PENDING: "Start preparing",
+        Status.PREPARING: "Mark ready",
+        Status.READY: "Complete order",
+    }
+
     def __str__(self):
         return f"Order #{self.pk} ({self.get_status_display()})"
+
+    @property
+    def next_status(self):
+        return self.STATUS_FLOW.get(self.status)
+
+    @property
+    def next_action_label(self):
+        return self.NEXT_ACTION_LABELS.get(self.status)
+
+    @property
+    def is_open(self):
+        return self.status not in (self.Status.COMPLETED, self.Status.CANCELLED)
 
     @property
     def items_summary(self):

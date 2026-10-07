@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -17,13 +18,18 @@ from .models import CartItem, FoodItem, Review
 @transaction.atomic
 def add_to_cart(request, product_id):
     product = get_object_or_404(FoodItem, pk=product_id, is_available=True)
+    try:
+        quantity = int(request.POST.get("quantity", 1))
+    except (TypeError, ValueError):
+        quantity = 1
+    quantity = max(1, min(quantity, 20))
     cart_item, created = CartItem.objects.select_for_update().get_or_create(
         product=product,
         user=request.user,
-        defaults={"unit_price": product.current_price, "quantity": 1},
+        defaults={"unit_price": product.current_price, "quantity": quantity},
     )
     if not created:
-        cart_item.quantity += 1
+        cart_item.quantity += quantity
         cart_item.unit_price = product.current_price
         cart_item.save(update_fields=("quantity", "unit_price"))
 
@@ -71,6 +77,7 @@ def details(request, id):
         is_available=True,
     )
     reviews = item.reviews.select_related("reviewer")
+    rating = reviews.aggregate(avg=Avg("rating"), count=Count("id"))
     has_ordered = False
     if request.user.is_authenticated:
         has_ordered = (
@@ -81,7 +88,12 @@ def details(request, id):
     return render(
         request,
         "fooddetail.html",
-        {"has_ordered": has_ordered, "item": item, "review": reviews},
+        {
+            "has_ordered": has_ordered,
+            "item": item,
+            "review": reviews,
+            "rating": rating,
+        },
     )
 
 

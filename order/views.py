@@ -1,10 +1,11 @@
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
@@ -94,6 +95,73 @@ def order_details(request, order_id):
         "order_details.html",
         {"order": order, "order_items": order.items.all()},
     )
+
+
+@login_required(login_url="login")
+@require_POST
+@transaction.atomic
+def cancel_order(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_for_update(),
+        pk=order_id,
+        user=request.user,
+    )
+    if order.status != Order.Status.PENDING:
+        messages.error(
+            request,
+            "This order is already being prepared and can no longer be "
+            "cancelled. Please contact the restaurant.",
+        )
+    else:
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=("status",))
+        messages.success(request, f"Order #{order.pk} has been cancelled.")
+    return redirect("order_details", order_id=order.pk)
+
+
+staff_required = user_passes_test(lambda user: user.is_staff, login_url="login")
+
+
+@staff_required
+def manage_orders(request):
+    base = Order.objects.select_related("user").prefetch_related("items")
+    active_orders = base.exclude(
+        status__in=(Order.Status.COMPLETED, Order.Status.CANCELLED)
+    ).order_by("placed_at")
+    finished_today = base.filter(
+        status__in=(Order.Status.COMPLETED, Order.Status.CANCELLED),
+        placed_at__date=timezone.localdate(),
+    )
+    return render(
+        request,
+        "manage_orders.html",
+        {"active_orders": active_orders, "finished_today": finished_today},
+    )
+
+
+@staff_required
+@require_POST
+@transaction.atomic
+def update_order_status(request, order_id):
+    order = get_object_or_404(Order.objects.select_for_update(), pk=order_id)
+    action = request.POST.get("action")
+
+    if action == "cancel" and order.is_open:
+        order.status = Order.Status.CANCELLED
+        order.save(update_fields=("status",))
+        messages.success(request, f"Order #{order.pk} cancelled.")
+    elif action == "advance" and order.next_status:
+        order.status = order.next_status
+        order.save(update_fields=("status",))
+        messages.success(
+            request,
+            f"Order #{order.pk} moved to {order.get_status_display()}.",
+        )
+    else:
+        messages.error(
+            request, f"Order #{order.pk} cannot be updated from its current state."
+        )
+    return redirect("manage_orders")
 
 
 class OrderHistoryView(LoginRequiredMixin, ListView):
