@@ -1,4 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "django"
+  "framework": "django",
+  "crons": [
+    {
+      "path": "/healthz/",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
