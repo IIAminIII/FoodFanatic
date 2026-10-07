@@ -40,6 +40,15 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.pk} ({self.get_status_display()})"
 
+    @property
+    def items_summary(self):
+        """Readable one-line recap, e.g. "2 × Burger, 1 × Cola, +3 more"."""
+        items = list(self.items.all())
+        parts = [f"{item.quantity} × {item.product_name}" for item in items[:2]]
+        if len(items) > 2:
+            parts.append(f"+{len(items) - 2} more")
+        return ", ".join(parts)
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")

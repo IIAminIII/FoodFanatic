@@ -1,4 +1,4 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
@@ -191,3 +191,26 @@ class RecordRetentionTests(TestCase):
         self.assertFalse(OrderItem.objects.filter(pk=self.order_item.pk).exists())
         self.assertTrue(OrderItem.objects.filter(pk=other_item.pk).exists())
         self.assertTrue(FoodItem.objects.filter(pk=self.item.pk).exists())
+
+
+class OrderSummaryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("customer2", password="test-password")
+
+    def test_items_summary_truncates_after_two_items(self):
+        order = Order.objects.create(user=self.user, total_amount=Decimal("30.00"))
+        for index, name in enumerate(("Burger", "Cola", "Fries", "Pasta"), start=1):
+            OrderItem.objects.create(
+                order=order,
+                product_name=name,
+                quantity=index,
+                unit_price=Decimal("5.00"),
+            )
+
+        self.assertEqual(order.items_summary, "1 × Burger, 2 × Cola, +2 more")
+
+    def test_items_summary_is_empty_for_order_without_items(self):
+        order = Order.objects.create(user=self.user, total_amount=Decimal("0.00"))
+
+        self.assertEqual(order.items_summary, "")
+

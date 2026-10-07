@@ -1,31 +1,121 @@
 {% extends "base.html" %} {% block content %}
 
-<h1 class="text-center text-3xl font-semibold my-20">Write a Review</h1>
-<form method="post" novalidate>
-  {% csrf_token %} {% if form.non_field_errors %} 
-  {% for er in form.non_field_errors %}
-  <p class="bg-danger text-white p-3">{{er}}</p>
-  {% endfor %} {% endif %} {% for fm in form%}
+<style>
+  .star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 0.35rem;
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+  .star-rating input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .star-rating label {
+    color: #d1d5db;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+  .star-rating input:checked ~ label,
+  .star-rating label:hover,
+  .star-rating label:hover ~ label {
+    color: #f59e0b;
+  }
+  .star-rating label:hover {
+    transform: scale(1.15);
+  }
+  .star-rating input:focus-visible ~ label {
+    outline: 2px solid #f59e0b;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+</style>
 
-  <div class="flex items-center justify-center">
-    <div class="flex flex-col items-start justify-start mb-4">
-      <p class="">{{fm.label_tag}}</p>
-      <p class="border border-black rounded-md w-fiT">
-        {{fm}} {{fm.errors|striptags}}
-      </p>
+<div class="max-w-xl mx-auto my-10 md:my-16 px-4">
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    {% comment %} Item being reviewed {% endcomment %}
+    <div class="flex items-center gap-4 bg-slate-800 p-5">
+      {% if item.image %}
+      <img
+        src="{{ item.image.url }}"
+        alt="{{ item.title }}"
+        class="w-16 h-16 rounded-xl object-cover ring-2 ring-white/20"
+        width="64"
+        height="64"
+      />
+      {% endif %}
+      <div>
+        <p class="text-gray-300 text-sm">
+          {% if form.instance.pk %}Update your review of{% else %}Write a review for{% endif %}
+        </p>
+        <h1 class="text-white text-2xl font-bold">{{ item.title }}</h1>
+      </div>
     </div>
-    <br />
-    {{fm.rating}}
+
+    <form method="post" novalidate class="p-6 md:p-8">
+      {% csrf_token %}
+
+      {% for error in form.non_field_errors %}
+      <p class="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm">
+        {{ error }}
+      </p>
+      {% endfor %}
+
+      {% comment %} Star rating {% endcomment %}
+      <div class="text-center mb-6">
+        <p class="font-semibold text-gray-700 mb-2">How was it?</p>
+        <div class="star-rating">
+          {% for value in "54321" %}
+          <input
+            type="radio"
+            id="star{{ value }}"
+            name="rating"
+            value="{{ value }}"
+            required
+            {% if form.rating.value|stringformat:"s" == value %}checked{% endif %}
+          />
+          <label for="star{{ value }}" title="{{ value }} star{{ value|pluralize }}">★</label>
+          {% endfor %}
+        </div>
+        {% for error in form.rating.errors %}
+        <p class="text-red-600 text-sm mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      {% comment %} Review body {% endcomment %}
+      <label for="id_body" class="block font-semibold text-gray-700 mb-2">Your review</label>
+      <textarea
+        id="id_body"
+        name="body"
+        rows="5"
+        minlength="10"
+        required
+        placeholder="What did you like or dislike? How was the taste, portion, and freshness?"
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent resize-y"
+      >{{ form.body.value|default_if_none:"" }}</textarea>
+      <p class="text-gray-400 text-sm mt-1">At least 10 characters.</p>
+      {% for error in form.body.errors %}
+      <p class="text-red-600 text-sm mt-1">{{ error }}</p>
+      {% endfor %}
+
+      <div class="flex items-center gap-3 mt-6">
+        <button
+          type="submit"
+          class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl transition-colors duration-300"
+        >
+          {% if form.instance.pk %}Update review{% else %}Submit review{% endif %}
+        </button>
+        <a
+          href="{% url 'detail' item.id %}"
+          class="py-3 px-5 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 font-semibold transition-colors duration-300"
+        >
+          Cancel
+        </a>
+      </div>
+    </form>
   </div>
-  {% endfor %}
-  <div class="flex items-center justify-center my-4">
-    <button
-      class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
-      type="submit"
-    >
-      Submit
-    </button>
-  </div>
-</form>
+</div>
 
 {% endblock content %}
