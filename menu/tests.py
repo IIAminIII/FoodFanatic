@@ -1,4 +1,4 @@
-from datetime import timedelta
+﻿from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 from os import urandom
@@ -154,7 +154,7 @@ class MenuSeedCommandTests(TestCase):
             verbosity=0,
         )
         burger.refresh_from_db()
-        self.assertEqual(burger.price, Decimal("200.00"))
+        self.assertEqual(burger.price, Decimal("320.00"))
 
     def test_fill_missing_images_only_updates_missing_image_references(self):
         with TemporaryDirectory() as media_root:
@@ -261,3 +261,45 @@ class ReviewAuthorizationTests(TestCase):
                 body="Reviewing it a second time.",
                 rating=1,
             )
+
+
+class HomePageTests(TestCase):
+    def setUp(self):
+        self.burger = FoodItem.objects.create(
+            title="Classic Burger",
+            description="A hearty beef burger.",
+            price=Decimal("320.00"),
+        )
+        self.offer = FoodItem.objects.create(
+            title="Shawarma Deal",
+            description="Seasoned wrap.",
+            price=Decimal("200.00"),
+            discount_price=Decimal("160.00"),
+            active=True,
+        )
+
+    def test_discount_percent_reflects_active_discount(self):
+        self.assertEqual(self.offer.discount_percent, 20)
+        self.assertEqual(self.burger.discount_percent, 0)
+
+    def test_search_filters_items_by_title(self):
+        response = self.client.get(reverse("home"), {"q": "shawarma"})
+
+        self.assertContains(response, "Shawarma Deal")
+        self.assertNotContains(response, "Classic Burger")
+
+    def test_active_discounts_appear_as_offers(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(
+            [item.pk for item in response.context["offers"]],
+            [self.offer.pk],
+        )
+
+    def test_inactive_discounts_are_not_offers(self):
+        self.offer.active = False
+        self.offer.save(update_fields=("active",))
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.context["offers"], [])

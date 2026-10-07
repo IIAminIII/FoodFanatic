@@ -81,6 +81,12 @@ class FoodItem(models.Model):
     def current_price(self):
         return self.discount_price if self.is_discount_active else self.price
 
+    @property
+    def discount_percent(self):
+        if not self.is_discount_active:
+            return 0
+        return round((self.price - self.discount_price) * 100 / self.price)
+
 
 class CartItem(models.Model):
     product = models.ForeignKey(FoodItem, on_delete=models.CASCADE)

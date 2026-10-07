@@ -1,104 +1,226 @@
-{% extends "base.html" %} {% load static %} {% block content %} {% comment %}
-banner section {% endcomment %}
-<div
-  class="w-full flex flex-col-reverse md:flex-row items-center justify-center max-w-7xl mx-auto my-3 md:my-5 lg:my-10 px-1 md:px-5 lg:px-0"
->
-  <h1 class="w-1/2 text-5xl md:text-7xl lg:text-9xl font-bold font-serif">
-    Delicious Fast Food
-  </h1>
+{% extends "base.html" %} {% load static %} {% block content %}
 
-  <img class="w-1/2 lg:w-[400px]" src="{% static 'banner.png' %}" alt="" />
-</div>
+{% comment %} Hero {% endcomment %}
+<section class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white overflow-hidden">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-20 grid md:grid-cols-2 items-center gap-10">
+    <div data-reveal>
+      <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-amber-300 mb-5">
+        <span class="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
+        Fresh from the kitchen
+      </p>
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+        Delicious food,<br />
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-amber-400">delivered to you.</span>
+      </h1>
+      <p class="mt-4 text-slate-300 text-lg max-w-md">
+        Burgers, biryani, pizza and more — order in a few taps and track it till it reaches your door.
+      </p>
 
-<div class="p-2 max-w-7xl mx-auto">
-  <h1
-    class="mt-10 md:mt-0 mb-8 md:mb-20 pt-5 text-center text-xl md:text-4xl font-semibold"
-  >
-    Available Food
-  </h1>
-
-  {% comment %} Tab Bar {% endcomment %}
-  <div class="flex flex-col md:flex-row justify-center items-start gap-5">
-    <div
-      class="w-[70%] md:w-1/4 flex flex-col gap-2 justify-center item-center text-lg font-md text-white mx-auto md:my-14"
-    >
-      <a
-        class="hover:bg-opacity-50 px-2 py-1 rounded-md bg-slate-800 border-b-2 border-b-slate-800 hover:border-b-opacity-50 transition-colors duration-300"
-        href="{% url 'home'%}"
-      >
-        All</a
-      >
-      {% for category in categories %}
-      <a
-        class="hover:bg-opacity-50 px-2 py-1 rounded-md bg-slate-800 border-b-2 border-b-slate-800 hover:border-b-opacity-50 transition-colors duration-300"
-        href="{% url 'catfilter' category.slug %}"
-      >
-        {{category.name}}</a
-      >
-      {% endfor %}
+      <form method="get" action="{% url 'home' %}" class="mt-8 flex max-w-md rounded-full bg-white p-1.5 shadow-xl shadow-black/20">
+        <input
+          type="search"
+          name="q"
+          value="{{ query }}"
+          placeholder="Search burgers, biryani, drinks…"
+          class="flex-1 bg-transparent px-5 text-slate-900 placeholder-slate-400 focus:outline-none"
+          aria-label="Search the menu"
+        />
+        <button type="submit" class="rounded-full bg-brand-500 hover:bg-brand-600 px-6 py-3 font-bold text-white transition-colors">
+          Search
+        </button>
+      </form>
     </div>
 
-    <div class="w-[70%] mx-auto md:w-3/4">
-      <h4 class="px-3 text-2xl font-semibold">
-        {{data | length}} results found
-      </h4>
+    <img
+      data-reveal
+      class="hidden md:block w-full max-w-md mx-auto drop-shadow-2xl"
+      src="{% static 'banner.png' %}"
+      alt=""
+      width="400"
+      height="400"
+      fetchpriority="high"
+    />
+  </div>
+</section>
 
-      {% comment %} All Foods Cards {% endcomment %}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-5">
-        {% for item in data %}
-        <div class="col-2 p-1 bg-slate-800 rounded-md">
-          <div class="card m-2">
-            <div class="relative">
-              {% if item.image %}
-              <img
-                src="{{ item.image.url }}"
-                class="rounded-md w-[500px]"
-                style="max-width: 100%; height: 200px; object-fit: cover"
-                alt="{{ item.title }}"
-                width="500"
-                height="200"
-                loading="lazy"
-                decoding="async"
-              />
-              {% endif %}
-              <div class="flex flex-col justify-start">
-                <h5 class="text-white text-2xl font-semibold mt-3">
-                  {{item.title}}
-                </h5>
-                <h5
-                  class="bg-gray-600 text-white text-sm w-fit px-[6px] py-[4px] rounded-md mt-1"
-                >
-                  {% for cat in item.category.all %} {{cat.name}} {% endfor %}
-                </h5>
+{% comment %} Special offers rail {% endcomment %}
+{% if offers and not query %}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+  <div class="flex items-end justify-between mb-5" data-reveal>
+    <div>
+      <h2 class="text-2xl md:text-3xl font-bold text-slate-900">🔥 Special Offers</h2>
+      <p class="text-slate-500 mt-1">Limited-time prices — grab them while they last.</p>
+    </div>
+    <a href="{% url 'catfilter' 'special-offer' %}" class="hidden sm:inline text-sm font-bold text-brand-600 hover:text-brand-700">View all →</a>
+  </div>
 
-                <p class="text-base mt-1 text-white">
-                  {{item.description |truncatewords:10}}
-                </p>
-                <div class="absolute top-2 right-2">
-                  <p
-                    class="bg-gray-600 px-[4px] py-[2px] rounded-md text-lg text-white font-md"
-                  >
-                    {% if item.is_discount_active %}
-                    <del>$ {{item.price}}</del>
-                    <span> $ {{item.current_price}} </span>
-                    {%else%} $ {{item.price}} {%endif%}
-                  </p>
-                </div>
-                <div
-                  class="flex items-center justify-center bg-gray-600 hover:bg-opacity-50 transition duration-300 w-[90px] h-[40px] px-[6px] py-[4px] rounded-md mt-3 text-white"
-                >
-                  <a class="text-center" href="{% url 'detail' item.id %}"
-                    >Details</a
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
+  <div class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch]" data-reveal>
+    {% for item in offers %}
+    <a
+      href="{% url 'detail' item.id %}"
+      class="snap-start shrink-0 w-64 rounded-2xl bg-white shadow-soft overflow-hidden group ring-1 ring-slate-200/60 hover:ring-brand-500/50 transition"
+    >
+      <div class="relative h-36 overflow-hidden">
+        {% if item.image %}
+        <img
+          src="{{ item.image.url }}"
+          alt="{{ item.title }}"
+          class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          width="256" height="144" loading="lazy" decoding="async"
+        />
+        {% endif %}
+        <span class="absolute top-2 left-2 rounded-full bg-red-600 text-white text-xs font-extrabold px-2.5 py-1 shadow">
+          -{{ item.discount_percent }}%
+        </span>
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-slate-900 truncate">{{ item.title }}</h3>
+        <p class="mt-1">
+          <span class="text-lg font-extrabold text-brand-600">৳{{ item.current_price|floatformat:0 }}</span>
+          <del class="ml-2 text-sm text-slate-400">৳{{ item.price|floatformat:0 }}</del>
+        </p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% comment %} Menu {% endcomment %}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-20">
+  <div data-reveal>
+    <h2 class="text-2xl md:text-3xl font-bold text-slate-900">
+      {% if query %}Results for “{{ query }}”{% elif active_category %}{{ active_category.name }}{% else %}Our Menu{% endif %}
+    </h2>
+    <p class="text-slate-500 mt-1">{{ data|length }} item{{ data|length|pluralize }} available</p>
+  </div>
+
+  {% comment %} Category pills {% endcomment %}
+  <div class="flex gap-2 overflow-x-auto py-5 [-webkit-overflow-scrolling:touch]" data-reveal>
+    <a
+      href="{% url 'home' %}"
+      class="shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors {% if not active_category %}bg-slate-900 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100{% endif %}"
+    >All</a>
+    {% for category in categories %}
+    <a
+      href="{% url 'catfilter' category.slug %}"
+      class="shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors {% if active_category.slug == category.slug %}bg-slate-900 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100{% endif %}"
+    >{{ category.name }}</a>
+    {% endfor %}
+  </div>
+
+  {% comment %} Food cards {% endcomment %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-2">
+    {% for item in data %}
+    <div
+      data-card
+      class="rounded-2xl bg-white shadow-soft ring-1 ring-slate-200/60 overflow-hidden flex flex-col group hover:-translate-y-1 hover:shadow-xl transition duration-300"
+    >
+      <a href="{% url 'detail' item.id %}" class="relative block h-44 overflow-hidden">
+        {% if item.image %}
+        <img
+          src="{{ item.image.url }}"
+          alt="{{ item.title }}"
+          class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          width="400" height="176" loading="lazy" decoding="async"
+        />
+        {% else %}
+        <span class="h-full w-full grid place-items-center bg-slate-100 text-4xl">🍽️</span>
+        {% endif %}
+        {% if item.is_discount_active %}
+        <span class="absolute top-2 left-2 rounded-full bg-red-600 text-white text-xs font-extrabold px-2.5 py-1 shadow">
+          -{{ item.discount_percent }}%
+        </span>
+        {% endif %}
+      </a>
+
+      <div class="p-4 flex flex-col flex-1">
+        <div class="flex items-start justify-between gap-2">
+          <a href="{% url 'detail' item.id %}" class="font-bold text-slate-900 leading-snug hover:text-brand-600 transition-colors">
+            {{ item.title }}
+          </a>
+          <p class="text-right shrink-0">
+            {% if item.is_discount_active %}
+            <span class="block text-lg font-extrabold text-brand-600">৳{{ item.current_price|floatformat:0 }}</span>
+            <del class="text-xs text-slate-400">৳{{ item.price|floatformat:0 }}</del>
+            {% else %}
+            <span class="text-lg font-extrabold text-slate-900">৳{{ item.price|floatformat:0 }}</span>
+            {% endif %}
+          </p>
         </div>
-        {% endfor %}
+
+        <p class="mt-1 text-sm text-slate-500 line-clamp-2">{{ item.description }}</p>
+
+        <div class="mt-2 flex items-center gap-1 text-sm">
+          {% if item.review_count %}
+          <span class="text-amber-500">★</span>
+          <span class="font-bold text-slate-800">{{ item.avg_rating|floatformat:1 }}</span>
+          <span class="text-slate-400">({{ item.review_count }})</span>
+          {% else %}
+          <span class="text-slate-400">No reviews yet</span>
+          {% endif %}
+        </div>
+
+        <div class="mt-auto pt-4 flex gap-2">
+          <form method="post" action="{% url 'addcart' item.id %}" class="flex-1">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="w-full rounded-xl bg-slate-900 hover:bg-brand-600 text-white font-bold py-2.5 text-sm transition-colors duration-300"
+            >
+              Add to cart
+            </button>
+          </form>
+          <a
+            href="{% url 'detail' item.id %}"
+            class="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 transition-colors"
+          >Details</a>
+        </div>
       </div>
     </div>
+    {% empty %}
+    <div class="col-span-full rounded-2xl bg-white ring-1 ring-slate-200 p-14 text-center text-slate-500">
+      <p class="text-5xl mb-4">🔍</p>
+      <p class="font-bold text-slate-800 text-lg">Nothing found{% if query %} for “{{ query }}”{% endif %}.</p>
+      <p class="mt-1">Try another search or <a class="font-bold text-brand-600 underline" href="{% url 'home' %}">browse the full menu</a>.</p>
+    </div>
+    {% endfor %}
   </div>
-</div>
+</section>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  // Content stays fully visible without JS; GSAP only adds the motion.
+  window.addEventListener("DOMContentLoaded", function () {
+    if (!window.gsap || !window.ScrollTrigger) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    gsap.utils.toArray("[data-reveal]").forEach(function (el) {
+      gsap.from(el, {
+        opacity: 0,
+        y: 28,
+        duration: 0.7,
+        ease: "power2.out",
+        scrollTrigger: { trigger: el, start: "top 88%", once: true },
+      });
+    });
+
+    ScrollTrigger.batch("[data-card]", {
+      start: "top 92%",
+      once: true,
+      onEnter: function (batch) {
+        gsap.from(batch, {
+          opacity: 0,
+          y: 32,
+          duration: 0.55,
+          stagger: 0.07,
+          ease: "power2.out",
+        });
+      },
+    });
+  });
+</script>
 
 {% endblock content %}

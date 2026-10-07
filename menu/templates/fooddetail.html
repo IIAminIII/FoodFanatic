@@ -35,8 +35,14 @@
 
         {% endfor %}
         <h4 class="text-lg lg:text-xl lg:font-semibold items-stretch">
-          Price: $ {%if item.is_discount_active %} {{item.current_price}} {%else%}
-          {{item.price}} {%endif%}
+          Price:
+          {% if item.is_discount_active %}
+          ৳{{ item.current_price|floatformat:0 }}
+          <del class="text-gray-400 text-base ml-1">৳{{ item.price|floatformat:0 }}</del>
+          <span class="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">-{{ item.discount_percent }}%</span>
+          {% else %}
+          ৳{{ item.price|floatformat:0 }}
+          {% endif %}
         </h4>
 
         <div class="mt-4">

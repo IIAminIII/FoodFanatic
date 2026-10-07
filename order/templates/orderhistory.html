@@ -71,7 +71,7 @@ endcomment %} {% comment %} {% block head_title %} Transaction Report{% endblock
           <span class="text-gray-500 text-sm block">{{ order.placed_at|time:"g:i A" }}</span>
         </td>
         <td class="px-4 py-3">{{ order.items_summary|default:"—" }}</td>
-        <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">${{ order.total_amount }}</td>
+        <td class="px-4 py-3 text-right font-semibold whitespace-nowrap">৳{{ order.total_amount|floatformat:0 }}</td>
         <td class="px-4 py-3">{% include "includes/status_badge.html" with order=order %}</td>
         <td class="px-4 py-3">
           <a class="underline whitespace-nowrap" href="{% url 'order_details' order.id %}">View details</a>
