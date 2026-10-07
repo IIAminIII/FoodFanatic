@@ -12,9 +12,13 @@ def build_database_config(database_url):
     # PostgreSQL connection option and would otherwise be passed to psycopg.
     options.pop("supa", None)
 
-    # Supabase's transaction pooler cannot retain session-scoped cursors or
-    # prepared statements between transactions.
-    if str(config.get("PORT", "")) == "6543":
+    # Transaction poolers (Supabase on port 6543, Neon's "-pooler" hosts)
+    # cannot retain session-scoped cursors or prepared statements between
+    # transactions.
+    is_transaction_pooler = str(config.get("PORT", "")) == "6543" or "-pooler." in str(
+        config.get("HOST", "")
+    )
+    if is_transaction_pooler:
         options.setdefault("prepare_threshold", None)
         config["DISABLE_SERVER_SIDE_CURSORS"] = True
 

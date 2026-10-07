@@ -55,6 +55,15 @@ class DatabaseConfigTests(SimpleTestCase):
         self.assertIsNone(config["OPTIONS"]["prepare_threshold"])
         self.assertTrue(config["DISABLE_SERVER_SIDE_CURSORS"])
 
+    def test_neon_pooler_disables_prepared_statements_and_cursors(self):
+        config = build_database_config(
+            "postgresql://user:password@ep-cool-darkness-123456-pooler."
+            "us-east-1.aws.neon.tech:5432/neondb?sslmode=require"
+        )
+
+        self.assertIsNone(config["OPTIONS"]["prepare_threshold"])
+        self.assertTrue(config["DISABLE_SERVER_SIDE_CURSORS"])
+
     def test_standard_postgres_options_are_preserved(self):
         config = build_database_config(
             "postgresql://user:password@database.example.com:"
