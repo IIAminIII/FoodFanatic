@@ -6,27 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
     <title>{% block title %}FoodFanatic{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                50: "#fff7ed",
-                100: "#ffedd5",
-                500: "#f97316",
-                600: "#ea580c",
-                700: "#c2410c"
-              }
-            },
-            boxShadow: {
-              soft: "0 20px 50px -24px rgba(15, 23, 42, 0.28)"
-            }
-          }
-        }
-      };
-    </script>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}" />
   </head>
 
   <body class="min-h-screen bg-slate-50 text-slate-900 antialiased flex flex-col">

@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% load static %} {% block content %}
+{% extends "base.html" %} {% load static images %} {% block content %}
 
 {% comment %} Hero {% endcomment %}
 <section class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white overflow-hidden">
@@ -63,7 +63,7 @@
       <div class="relative h-36 overflow-hidden">
         {% if item.image %}
         <img
-          src="{{ item.image.url }}"
+          src="{{ item.image.url|thumb:384 }}"
           alt="{{ item.title }}"
           class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           width="256" height="144" loading="lazy" decoding="async"
@@ -119,7 +119,7 @@
       <a href="{% url 'detail' item.id %}" class="relative block h-44 overflow-hidden">
         {% if item.image %}
         <img
-          src="{{ item.image.url }}"
+          src="{{ item.image.url|thumb:640 }}"
           alt="{{ item.title }}"
           class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           width="400" height="176" loading="lazy" decoding="async"

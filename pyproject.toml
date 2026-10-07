@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [tool.vercel.scripts]
-build = 'if [ -n "$DATABASE_URL" ] || [ -n "$POSTGRES_URL" ]; then python manage.py migrate --noinput && python manage.py setup_media_bucket && python manage.py seed_menu --skip-images --if-empty && if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then python manage.py seed_menu --fill-missing-images; fi; fi'
+build = 'if [ -n "$DATABASE_URL" ] || [ -n "$POSTGRES_URL" ]; then python manage.py migrate --noinput && python manage.py setup_media_bucket && python manage.py seed_menu --skip-images --if-empty && if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then python manage.py seed_menu --fill-missing-images && python manage.py compress_menu_images; fi; fi'

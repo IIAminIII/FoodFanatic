@@ -183,6 +183,9 @@ else:
         },
     }
 
+# Vercel's /_vercel/image endpoint only exists on Vercel deployments.
+VERCEL_IMAGE_OPTIMIZATION = IS_VERCEL
+
 # Menu photography is displayed in cards a few hundred pixels wide, so uploads
 # are capped well below the multi-megapixel originals cameras produce.
 IMAGE_MAX_WIDTH = env.int("IMAGE_MAX_WIDTH", default=1200)

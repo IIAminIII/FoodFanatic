@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} {% load images %} {% block content %}
 
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
   <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-8">Your Cart</h1>
@@ -13,7 +13,7 @@
         <a href="{% url 'detail' item.product.id %}" class="shrink-0">
           <img
             class="w-20 h-20 rounded-xl object-cover"
-            src="{{ item.product.image.url }}"
+            src="{{ item.product.image.url|thumb:256 }}"
             alt="{{ item.product.title }}"
             width="80" height="80" loading="lazy"
           />

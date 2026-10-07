@@ -337,3 +337,20 @@ class CartFeatureTests(TestCase):
         )
         response = self.client.get(reverse("home"))
         self.assertEqual(response.context["cart_count"], 4)
+
+
+class ThumbFilterTests(TestCase):
+    def test_thumb_passes_through_without_optimizer(self):
+        from .templatetags.images import thumb
+
+        with self.settings(VERCEL_IMAGE_OPTIMIZATION=False):
+            self.assertEqual(thumb("https://x.test/a.jpg", 640), "https://x.test/a.jpg")
+
+    def test_thumb_builds_vercel_optimizer_url(self):
+        from .templatetags.images import thumb
+
+        with self.settings(VERCEL_IMAGE_OPTIMIZATION=True):
+            self.assertEqual(
+                thumb("https://x.test/a b.jpg", 640),
+                "/_vercel/image?url=https%3A%2F%2Fx.test%2Fa%20b.jpg&w=640&q=75",
+            )

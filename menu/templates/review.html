@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} {% load images %} {% block content %}
 
 <style>
   .star-rating {
@@ -39,7 +39,7 @@
     <div class="flex items-center gap-4 bg-slate-800 p-5">
       {% if item.image %}
       <img
-        src="{{ item.image.url }}"
+        src="{{ item.image.url|thumb:256 }}"
         alt="{{ item.title }}"
         class="w-16 h-16 rounded-xl object-cover ring-2 ring-white/20"
         width="64"
