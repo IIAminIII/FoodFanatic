@@ -1,6 +1,28 @@
-from django.test import SimpleTestCase
+from unittest import mock
+
+from django.db import connection
+from django.test import SimpleTestCase, TestCase
 
 from .database import build_database_config, resolve_database_url
+
+
+class HealthCheckTests(TestCase):
+    def test_healthz_reports_ok_when_database_responds(self):
+        response = self.client.get("/healthz/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+
+    def test_healthz_reports_error_when_database_is_unreachable(self):
+        with mock.patch.object(
+            connection, "cursor", side_effect=RuntimeError("connection refused")
+        ):
+            response = self.client.get("/healthz/")
+
+        self.assertEqual(response.status_code, 503)
+        payload = response.json()
+        self.assertEqual(payload["status"], "error")
+        self.assertIn("connection refused", payload["database"])
 
 
 class DatabaseConfigTests(SimpleTestCase):

@@ -11,6 +11,7 @@ urlpatterns = [
     path("user/", include("user.urls")),
     path("menu/", include("menu.urls")),
     path("order/", include("order.urls")),
+    path("healthz/", views.healthz, name="healthz"),
     path("", views.home, name="home"),
     path("category/<slug:category_slug>/", views.home, name="catfilter"),
 ]
